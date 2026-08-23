@@ -244,7 +244,11 @@
         <select id="trackSelect">
             <option value="pink">Pink Noise</option>
             <option value="white">White Noise</option>
-            <option value="music">Music Loop</option>
+            <option value="funk">Funk</option>
+            <option value="rock">Rock</option>
+            <option value="dnb">Drum & Bass</option>
+            <option value="jazz">Jazz</option>
+            <option value="acoustic">Acoustic</option>
             <option value="custom">Custom Audio...</option>
         </select>
     </div>
@@ -303,7 +307,7 @@
         let isMuted = false;
         let audioStarted = false;
         let noiseBuffer = null;
-        let musicBuffer = null;
+        let musicBuffers = {};
         let customBuffer = null;
 
         let listenMode = 'challenge';
@@ -395,7 +399,7 @@
             gainNode.gain.value = 0.15;
 
             generateNoise();
-            generateMusic();
+            generateAllMusic();
         }
 
         function generateNoise() {
@@ -426,111 +430,259 @@
             }
         }
 
-        function generateMusic() {
+        // --- Music Loop Generator ---
+        function createBuffer(bpm, beats) {
             const sampleRate = audioCtx.sampleRate;
-            const bpm = 120;
-            const beats = 8;
             const beatLen = (60 / bpm) * sampleRate;
             const totalLen = Math.floor(beatLen * beats);
-            musicBuffer = audioCtx.createBuffer(2, totalLen, sampleRate);
+            const buffer = audioCtx.createBuffer(2, totalLen, sampleRate);
+            const left = buffer.getChannelData(0);
+            const right = buffer.getChannelData(1);
+            const beatSec = 60 / bpm;
 
-            const left = musicBuffer.getChannelData(0);
-            const right = musicBuffer.getChannelData(1);
-
-            const attackTime = 0.003;
             function addTone(freq, start, duration, amp, decay) {
-                const startSample = Math.floor(start * sampleRate);
-                const durSamples = Math.floor(duration * sampleRate);
-                const attackSamples = Math.floor(attackTime * sampleRate);
-                const releaseSamples = Math.min(Math.floor(0.01 * sampleRate), durSamples / 4);
-                for (let i = 0; i < durSamples && (startSample + i) < totalLen; i++) {
+                const ss = Math.floor(start * sampleRate);
+                const ds = Math.floor(duration * sampleRate);
+                const as = Math.floor(0.003 * sampleRate);
+                const rs = Math.min(Math.floor(0.01 * sampleRate), ds / 4);
+                for (let i = 0; i < ds && (ss + i) < totalLen; i++) {
                     const t = i / sampleRate;
                     let env = amp * Math.exp(-t * decay);
-                    if (i < attackSamples) env *= i / attackSamples;
-                    const fromEnd = durSamples - i;
-                    if (fromEnd < releaseSamples) env *= fromEnd / releaseSamples;
-                    const sample = env * Math.sin(2 * Math.PI * freq * t);
-                    left[startSample + i] += sample;
-                    right[startSample + i] += sample;
+                    if (i < as) env *= i / as;
+                    if (ds - i < rs) env *= (ds - i) / rs;
+                    const s = env * Math.sin(2 * Math.PI * freq * t);
+                    left[ss + i] += s;
+                    right[ss + i] += s;
+                }
+            }
+
+            function addSaw(freq, start, duration, amp, decay, harmonics) {
+                for (let h = 1; h <= harmonics; h++) {
+                    addTone(freq * h, start, duration, amp / h * (h % 2 === 0 ? -1 : 1), decay + h);
                 }
             }
 
             function addNoise(start, duration, amp, decay, hp) {
-                const startSample = Math.floor(start * sampleRate);
-                const durSamples = Math.floor(duration * sampleRate);
-                const attackSamples = Math.floor(0.001 * sampleRate);
+                const ss = Math.floor(start * sampleRate);
+                const ds = Math.floor(duration * sampleRate);
+                const as = Math.floor(0.001 * sampleRate);
                 let prev = 0;
-                const alpha = hp ? 0.85 : 0;
-                for (let i = 0; i < durSamples && (startSample + i) < totalLen; i++) {
+                for (let i = 0; i < ds && (ss + i) < totalLen; i++) {
                     const t = i / sampleRate;
                     let env = amp * Math.exp(-t * decay);
-                    if (i < attackSamples) env *= i / attackSamples;
-                    let sample = env * (Math.random() * 2 - 1);
-                    if (hp) {
-                        const filtered = alpha * (prev + sample - (left[startSample + i] || 0));
-                        prev = sample;
-                        sample = filtered;
-                    }
-                    left[startSample + i] += sample;
-                    right[startSample + i] += sample;
+                    if (i < as) env *= i / as;
+                    let s = env * (Math.random() * 2 - 1);
+                    if (hp) { const f = 0.85 * (prev + s - (left[ss + i] || 0)); prev = s; s = f; }
+                    left[ss + i] += s;
+                    right[ss + i] += s;
                 }
             }
 
-            const beatSec = 60 / bpm;
-            [0, 1.5, 2, 3.5, 4, 5.5, 6, 7.5].forEach(beat => {
-                const t = beat * beatSec;
-                addTone(55, t, 0.2, 0.7, 15);
-                addTone(110, t, 0.05, 0.3, 40);
-            });
-            [1, 3, 5, 7].forEach(beat => {
-                const t = beat * beatSec;
-                addTone(180, t, 0.05, 0.3, 30);
-                addNoise(t, 0.15, 0.25, 12, false);
-            });
-            for (let i = 0; i < beats * 2; i++) {
-                addNoise((i * 0.5) * beatSec, 0.05, 0.1, 50, true);
-            }
-            [82.4, 0, 82.4, 98, 110, 0, 82.4, 73.4].forEach((freq, i) => {
-                if (freq === 0) return;
-                const t = i * beatSec;
-                addTone(freq, t, beatSec * 0.8, 0.2, 3);
-                addTone(freq * 2, t, beatSec * 0.6, 0.08, 5);
-                addTone(freq * 3, t, beatSec * 0.4, 0.04, 8);
-            });
-            [0.5, 2.5, 4.5, 6.5].forEach(beat => {
-                const t = beat * beatSec;
-                [329.6, 392, 493.9].forEach(freq => {
-                    addTone(freq, t, 0.15, 0.06, 10);
-                    addTone(freq * 2, t, 0.1, 0.02, 15);
-                });
-            });
+            return { buffer, left, right, totalLen, sampleRate, beatSec, beats, addTone, addSaw, addNoise };
+        }
 
+        function finalizeBuffer(b) {
+            const { left, right, totalLen, sampleRate } = b;
             const fadeSamples = Math.floor(0.02 * sampleRate);
             for (let i = 0; i < fadeSamples; i++) {
-                const fadeIn = i / fadeSamples;
-                const fadeOut = 1 - fadeIn;
-                left[i] *= fadeIn;
-                right[i] *= fadeIn;
-                left[totalLen - 1 - i] *= fadeOut;
-                right[totalLen - 1 - i] *= fadeOut;
+                const fi = i / fadeSamples;
+                left[i] *= fi; right[i] *= fi;
+                left[totalLen - 1 - i] *= (1 - fi);
+                right[totalLen - 1 - i] *= (1 - fi);
             }
-
             let max = 0;
-            for (let i = 0; i < totalLen; i++) {
-                max = Math.max(max, Math.abs(left[i]), Math.abs(right[i]));
+            for (let i = 0; i < totalLen; i++) max = Math.max(max, Math.abs(left[i]), Math.abs(right[i]));
+            if (max > 0) { const n = 0.8 / max; for (let i = 0; i < totalLen; i++) { left[i] *= n; right[i] *= n; } }
+            return b.buffer;
+        }
+
+        function generateFunk() {
+            const b = createBuffer(120, 8);
+            const { beatSec, addTone, addNoise } = b;
+            // Kick
+            [0, 1.5, 2, 3.5, 4, 5.5, 6, 7.5].forEach(beat => {
+                addTone(55, beat * beatSec, 0.2, 0.7, 15);
+                addTone(110, beat * beatSec, 0.05, 0.3, 40);
+            });
+            // Snare
+            [1, 3, 5, 7].forEach(beat => {
+                addTone(180, beat * beatSec, 0.05, 0.3, 30);
+                addNoise(beat * beatSec, 0.15, 0.25, 12, false);
+            });
+            // Hats
+            for (let i = 0; i < 16; i++) addNoise(i * 0.5 * beatSec, 0.05, 0.1, 50, true);
+            // Bass (E minor funk)
+            [82.4, 0, 82.4, 98, 110, 0, 82.4, 73.4].forEach((freq, i) => {
+                if (!freq) return;
+                addTone(freq, i * beatSec, beatSec * 0.8, 0.2, 3);
+                addTone(freq * 2, i * beatSec, beatSec * 0.6, 0.08, 5);
+                addTone(freq * 3, i * beatSec, beatSec * 0.4, 0.04, 8);
+            });
+            // Chord stabs
+            [0.5, 2.5, 4.5, 6.5].forEach(beat => {
+                [329.6, 392, 493.9].forEach(freq => {
+                    addTone(freq, beat * beatSec, 0.15, 0.06, 10);
+                    addTone(freq * 2, beat * beatSec, 0.1, 0.02, 15);
+                });
+            });
+            return finalizeBuffer(b);
+        }
+
+        function generateRock() {
+            const b = createBuffer(140, 8);
+            const { beatSec, addTone, addSaw, addNoise } = b;
+            // Kick: 4 on the floor
+            for (let i = 0; i < 8; i++) {
+                addTone(50, i * beatSec, 0.15, 0.8, 18);
+                addTone(100, i * beatSec, 0.04, 0.4, 45);
             }
-            if (max > 0) {
-                const norm = 0.8 / max;
-                for (let i = 0; i < totalLen; i++) {
-                    left[i] *= norm;
-                    right[i] *= norm;
-                }
+            // Snare: 2 and 4
+            [1, 3, 5, 7].forEach(beat => {
+                addTone(200, beat * beatSec, 0.04, 0.4, 35);
+                addNoise(beat * beatSec, 0.12, 0.35, 15, false);
+            });
+            // Hats: eighth notes with accents
+            for (let i = 0; i < 16; i++) {
+                const amp = i % 2 === 0 ? 0.12 : 0.07;
+                addNoise(i * 0.5 * beatSec, 0.04, amp, 55, true);
             }
+            // Power chord riff (A5 = A+E)
+            const riff = [110, 110, 0, 110, 146.8, 130.8, 110, 0];
+            riff.forEach((freq, i) => {
+                if (!freq) return;
+                const t = i * beatSec;
+                // Root + fifth (power chord)
+                addSaw(freq, t, beatSec * 0.9, 0.12, 2, 5);
+                addSaw(freq * 1.5, t, beatSec * 0.9, 0.08, 2, 4);
+            });
+            // Bass follows root
+            riff.forEach((freq, i) => {
+                if (!freq) return;
+                addTone(freq / 2, i * beatSec, beatSec * 0.7, 0.25, 4);
+                addTone(freq, i * beatSec, beatSec * 0.5, 0.1, 6);
+            });
+            return finalizeBuffer(b);
+        }
+
+        function generateDnB() {
+            const b = createBuffer(174, 8);
+            const { beatSec, addTone, addNoise } = b;
+            // DnB: kick on 1, snare on 2.5-ish (the classic break pattern)
+            const kickHits = [0, 2.75, 4, 6.75];
+            const snareHits = [1, 3, 5, 7];
+            kickHits.forEach(beat => {
+                addTone(45, beat * beatSec, 0.18, 0.8, 20);
+                addTone(90, beat * beatSec, 0.03, 0.4, 50);
+            });
+            snareHits.forEach(beat => {
+                addTone(160, beat * beatSec, 0.03, 0.3, 40);
+                addNoise(beat * beatSec, 0.1, 0.4, 18, false);
+            });
+            // Fast hats
+            for (let i = 0; i < 32; i++) {
+                const amp = i % 4 === 0 ? 0.1 : 0.05;
+                addNoise(i * 0.25 * beatSec, 0.03, amp, 60, true);
+            }
+            // Sub bass (reese-style using two detuned tones)
+            const bassPattern = [55, 55, 0, 55, 49, 0, 55, 41.2];
+            bassPattern.forEach((freq, i) => {
+                if (!freq) return;
+                const t = i * beatSec;
+                addTone(freq, t, beatSec * 0.9, 0.35, 2);
+                addTone(freq * 1.005, t, beatSec * 0.9, 0.35, 2); // slight detune
+                addTone(freq * 2, t, beatSec * 0.5, 0.08, 6);
+            });
+            // Stab on offbeats
+            [0.5, 1.5, 4.5, 5.5].forEach(beat => {
+                [440, 523, 659].forEach(freq => {
+                    addTone(freq, beat * beatSec, 0.08, 0.04, 20);
+                });
+            });
+            return finalizeBuffer(b);
+        }
+
+        function generateJazz() {
+            const b = createBuffer(110, 8);
+            const { beatSec, addTone, addNoise } = b;
+            // Ride cymbal: swing pattern (1, 2-and, 3, 4-and)
+            for (let i = 0; i < 8; i++) {
+                addNoise(i * beatSec, 0.08, 0.08, 30, true); // on beat
+                addNoise((i + 0.67) * beatSec, 0.05, 0.05, 40, true); // swing
+            }
+            // Kick: light, beats 1 and 3
+            [0, 2, 4, 6].forEach(beat => {
+                addTone(60, beat * beatSec, 0.12, 0.4, 18);
+            });
+            // Ghost snares
+            [1.67, 3.67, 5.67, 7.67].forEach(beat => {
+                addNoise(beat * beatSec, 0.06, 0.1, 20, false);
+            });
+            // Walking bass (Bb blues scale)
+            const walk = [116.5, 130.8, 138.6, 155.6, 164.8, 155.6, 138.6, 130.8];
+            walk.forEach((freq, i) => {
+                const t = i * beatSec;
+                addTone(freq / 2, t, beatSec * 0.85, 0.25, 3);
+                addTone(freq, t, beatSec * 0.6, 0.08, 5);
+            });
+            // Piano chords (Bb7 voicings)
+            [0, 2, 4, 6].forEach((beat, idx) => {
+                const chords = [
+                    [233, 293.7, 349.2, 440],  // Bb7
+                    [261.6, 329.6, 392, 466.2], // Cm7
+                    [233, 293.7, 349.2, 440],   // Bb7
+                    [277.2, 349.2, 415.3, 523.3] // Eb7
+                ];
+                chords[idx].forEach(freq => {
+                    addTone(freq, beat * beatSec, beatSec * 1.8, 0.04, 2);
+                });
+            });
+            return finalizeBuffer(b);
+        }
+
+        function generateAcoustic() {
+            const b = createBuffer(100, 8);
+            const { beatSec, addTone, addNoise } = b;
+            // Fingerpicked guitar pattern (Am - F - C - G)
+            const chords = [
+                { beats: [0, 1], notes: [110, 220, 261.6, 329.6, 440] },      // Am
+                { beats: [2, 3], notes: [87.3, 174.6, 261.6, 349.2, 440] },   // F
+                { beats: [4, 5], notes: [130.8, 261.6, 329.6, 392, 523.3] },  // C
+                { beats: [6, 7], notes: [98, 196, 246.9, 392, 493.9] }        // G
+            ];
+            chords.forEach(chord => {
+                chord.beats.forEach(beat => {
+                    chord.notes.forEach((freq, noteIdx) => {
+                        // Arpeggio: each note offset slightly
+                        const offset = noteIdx * 0.12;
+                        addTone(freq, (beat + offset) * beatSec, beatSec * 1.5, 0.08, 2.5);
+                        addTone(freq * 2, (beat + offset) * beatSec, beatSec * 0.8, 0.02, 5);
+                    });
+                });
+            });
+            // Light percussion (shaker)
+            for (let i = 0; i < 16; i++) {
+                const amp = i % 2 === 0 ? 0.04 : 0.025;
+                addNoise(i * 0.5 * beatSec, 0.04, amp, 45, true);
+            }
+            // Bass notes (root of each chord)
+            [110, 110, 87.3, 87.3, 130.8, 130.8, 98, 98].forEach((freq, i) => {
+                addTone(freq / 2, i * beatSec, beatSec * 0.9, 0.15, 3);
+            });
+            return finalizeBuffer(b);
+        }
+
+        function generateAllMusic() {
+            musicBuffers.funk = generateFunk();
+            musicBuffers.rock = generateRock();
+            musicBuffers.dnb = generateDnB();
+            musicBuffers.jazz = generateJazz();
+            musicBuffers.acoustic = generateAcoustic();
         }
 
         function getActiveBuffer() {
             if (customBuffer) return customBuffer;
-            if (trackSelect.value === 'music') return musicBuffer;
+            const track = trackSelect.value;
+            if (musicBuffers[track]) return musicBuffers[track];
             return noiseBuffer;
         }
 
@@ -1245,9 +1397,8 @@
             }
             customBuffer = null;
             if (audioCtx) {
-                if (trackSelect.value !== 'music') {
-                    generateNoise();
-                }
+                const track = trackSelect.value;
+                if (track === 'pink' || track === 'white') generateNoise();
                 if (audioStarted) swapSource();
             }
         });
