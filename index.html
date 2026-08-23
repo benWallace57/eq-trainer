@@ -245,7 +245,8 @@
 
     <div class="controls">
         <button id="playBtn">Play</button>
-        <button id="abBtn">Listen: Challenge</button>
+        <button id="abBtn" class="active">A (Target)</button>
+        <button id="flatBtn">Flat</button>
         <button id="submitBtn" class="submit-btn">Submit Guess</button>
         <button id="newRoundBtn" class="new-round-btn">New Round</button>
         <div class="q-control">
@@ -284,8 +285,9 @@
         let musicBuffer = null;
         let customBuffer = null;
 
-        // Listen modes: 'challenge', 'user', 'dry'
+        // Listen modes: 'challenge', 'user', 'flat'
         let listenMode = 'challenge';
+        let flatMode = false;
 
         // --- Game State ---
         let challenge = { freq: 1000, gain: 0, q: 1.0 };
@@ -318,6 +320,7 @@
         const qSlider = document.getElementById('qSlider');
         const qValueEl = document.getElementById('qValue');
         const feedbackEl = document.getElementById('feedback');
+        const flatBtn = document.getElementById('flatBtn');
         const dropZone = document.getElementById('dropZone');
 
         function initAudio() {
@@ -374,28 +377,38 @@
             const left = musicBuffer.getChannelData(0);
             const right = musicBuffer.getChannelData(1);
 
-            // Helper: simple sine with decay
+            // Helper: sine with attack ramp and decay (avoids pops)
+            const attackTime = 0.003; // 3ms attack to avoid click
             function addTone(freq, start, duration, amp, decay) {
                 const startSample = Math.floor(start * sampleRate);
                 const durSamples = Math.floor(duration * sampleRate);
+                const attackSamples = Math.floor(attackTime * sampleRate);
+                const releaseSamples = Math.min(Math.floor(0.01 * sampleRate), durSamples / 4);
                 for (let i = 0; i < durSamples && (startSample + i) < totalLen; i++) {
                     const t = i / sampleRate;
-                    const env = amp * Math.exp(-t * decay);
+                    // Attack ramp
+                    let env = amp * Math.exp(-t * decay);
+                    if (i < attackSamples) env *= i / attackSamples;
+                    // Release ramp
+                    const fromEnd = durSamples - i;
+                    if (fromEnd < releaseSamples) env *= fromEnd / releaseSamples;
                     const sample = env * Math.sin(2 * Math.PI * freq * t);
                     left[startSample + i] += sample;
                     right[startSample + i] += sample;
                 }
             }
 
-            // Helper: noise hit (snare/hat)
+            // Helper: noise hit with attack ramp (avoids pops)
             function addNoise(start, duration, amp, decay, highpass) {
                 const startSample = Math.floor(start * sampleRate);
                 const durSamples = Math.floor(duration * sampleRate);
+                const attackSamples = Math.floor(0.001 * sampleRate);
                 let prev = 0;
                 const alpha = highpass ? 0.85 : 0;
                 for (let i = 0; i < durSamples && (startSample + i) < totalLen; i++) {
                     const t = i / sampleRate;
-                    const env = amp * Math.exp(-t * decay);
+                    let env = amp * Math.exp(-t * decay);
+                    if (i < attackSamples) env *= i / attackSamples;
                     let sample = env * (Math.random() * 2 - 1);
                     if (highpass) {
                         const filtered = alpha * (prev + sample - (left[startSample + i] || 0));
@@ -453,6 +466,17 @@
                 });
             });
 
+            // Crossfade the loop boundary to prevent pop on repeat
+            const fadeSamples = Math.floor(0.02 * sampleRate); // 20ms crossfade
+            for (let i = 0; i < fadeSamples; i++) {
+                const fadeIn = i / fadeSamples;
+                const fadeOut = 1 - fadeIn;
+                left[i] *= fadeIn;
+                right[i] *= fadeIn;
+                left[totalLen - 1 - i] *= fadeOut;
+                right[totalLen - 1 - i] *= fadeOut;
+            }
+
             // Normalize
             let max = 0;
             for (let i = 0; i < totalLen; i++) {
@@ -501,16 +525,15 @@
             try { userFilter.disconnect(); } catch(e) {}
             try { gainNode.disconnect(); } catch(e) {}
 
-            if (listenMode === 'challenge') {
-                // source -> challengeFilter -> gainNode -> destination
+            const mode = getEffectiveMode();
+            if (mode === 'challenge') {
                 sourceNode.connect(challengeFilter);
                 challengeFilter.connect(gainNode);
-            } else if (listenMode === 'user') {
-                // source -> userFilter -> gainNode -> destination
+            } else if (mode === 'user') {
                 sourceNode.connect(userFilter);
                 userFilter.connect(gainNode);
             } else {
-                // dry: source -> gainNode -> destination
+                // flat: source -> gainNode -> destination
                 sourceNode.connect(gainNode);
             }
             gainNode.connect(audioCtx.destination);
@@ -798,17 +821,24 @@
             document.getElementById('streak').textContent = streak;
         }
 
-        function updateListenButton() {
+        function updateListenButtons() {
             abBtn.className = '';
-            if (listenMode === 'challenge') {
-                abBtn.textContent = 'Listen: Challenge';
+            flatBtn.className = '';
+            if (flatMode) {
+                abBtn.textContent = listenMode === 'challenge' ? 'A (Target)' : 'B (Yours)';
+                flatBtn.classList.add('active');
+            } else if (listenMode === 'challenge') {
+                abBtn.textContent = 'A (Target)';
                 abBtn.classList.add('active');
-            } else if (listenMode === 'user') {
-                abBtn.textContent = 'Listen: Your EQ';
-                abBtn.classList.add('active-user');
             } else {
-                abBtn.textContent = 'Listen: Dry';
+                abBtn.textContent = 'B (Yours)';
+                abBtn.classList.add('active-user');
             }
+        }
+
+        function getEffectiveMode() {
+            if (flatMode) return 'flat';
+            return listenMode;
         }
 
         // --- Game Logic ---
@@ -818,6 +848,7 @@
             roundActive = true;
             roundRevealed = false;
             listenMode = 'challenge';
+            flatMode = false;
 
             const diff = difficulties[diffSelect.value];
             const logMin = Math.log10(diff.freqRange[0]);
@@ -838,7 +869,7 @@
             updateUserFilter();
             updateUserDisplay();
             updateScoreDisplay();
-            updateListenButton();
+            updateListenButtons();
             hideFeedback();
             drawGraph();
 
@@ -907,15 +938,15 @@
         });
 
         abBtn.addEventListener('click', () => {
-            // Cycle: challenge -> user -> dry -> challenge
-            if (listenMode === 'challenge') {
-                listenMode = 'user';
-            } else if (listenMode === 'user') {
-                listenMode = 'dry';
-            } else {
-                listenMode = 'challenge';
-            }
-            updateListenButton();
+            flatMode = false;
+            listenMode = listenMode === 'challenge' ? 'user' : 'challenge';
+            updateListenButtons();
+            if (isPlaying) reconnectAudio();
+        });
+
+        flatBtn.addEventListener('click', () => {
+            flatMode = !flatMode;
+            updateListenButtons();
             if (isPlaying) reconnectAudio();
         });
 
