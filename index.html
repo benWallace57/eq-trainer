@@ -76,6 +76,12 @@
             font-weight: bold;
         }
 
+        button.muted {
+            background: #e94560;
+            color: #fff;
+            font-weight: bold;
+        }
+
         button.submit-btn {
             background: #e94560;
             border-color: #e94560;
@@ -247,12 +253,12 @@
         <canvas id="eqCanvas"></canvas>
     </div>
 
-    <div class="eq-info">
+    <div class="eq-info" id="eqInfoDisplay">
         Your EQ: <span id="userFreq">1000</span> Hz | <span id="userGain">0.0</span> dB | Q: <span id="userQ">1.0</span>
     </div>
 
     <div class="controls">
-        <button id="playBtn">Play</button>
+        <button id="muteBtn">Mute</button>
         <button id="abBtn" class="active">A (Target)</button>
         <button id="flatBtn">Flat</button>
         <button id="submitBtn" class="submit-btn">Submit Guess</button>
@@ -272,14 +278,14 @@
 
     <div class="instructions">
         <strong>How to play:</strong> Press "New Round" — a random EQ is applied to the audio.
-        Toggle A/B to switch between the target EQ and yours. Drag on the graph to match it.
-        After submitting, you can still adjust your EQ and A/B to hear exactly where you were off.
+        Toggle A/B to switch between the target EQ and yours. Tap near a node to select and drag it.
+        After submitting, keep adjusting and A/B-ing to hear exactly where you were off.
         <br><br>
-        <strong>Controls:</strong> Drag = set frequency &amp; gain. Pinch (touch) or scroll wheel = adjust Q width.
-        The Q slider also works if you prefer.
+        <strong>Controls:</strong> Tap near a node then drag to move it. Pinch anywhere to adjust Q/width
+        of the selected node. Scroll wheel also adjusts Q. The slider works too.
         <br><br>
-        <strong>Modes:</strong> "1 Band" = parametric peak/cut. "High Pass" = match the cutoff frequency.
-        "Both" = random mix of either.
+        <strong>Modes:</strong> "1 Band" = parametric peak/cut. "High Pass" = match the cutoff.
+        "Both" = HPF + band EQ together — tap near a node to select it before dragging.
     </div>
 
     <script>
@@ -287,10 +293,15 @@
         // --- Audio Engine ---
         let audioCtx = null;
         let sourceNode = null;
-        let challengeFilter = null;
-        let userFilter = null;
+        // Challenge chain: two filters (HPF + Band) always exist, bypassed when not needed
+        let challengeHPF = null;
+        let challengeBand = null;
+        // User chain
+        let userHPF = null;
+        let userBand = null;
         let gainNode = null;
-        let isPlaying = false;
+        let isMuted = false;
+        let audioStarted = false;
         let noiseBuffer = null;
         let musicBuffer = null;
         let customBuffer = null;
@@ -299,9 +310,22 @@
         let flatMode = false;
 
         // --- Game State ---
-        let challenge = { freq: 1000, gain: 0, q: 1.0, type: 'peaking' };
-        let userEQ = { freq: 1000, gain: 0, q: 1.0 };
-        let currentFilterType = 'peaking'; // 'peaking' or 'highpass'
+        // Challenge params
+        let challenge = {
+            band: { freq: 1000, gain: 0, q: 1.0 },
+            hp: { freq: 20, q: 0.7 }
+        };
+        // User params
+        let userBandEQ = { freq: 1000, gain: 0, q: 1.0 };
+        let userHPEQ = { freq: 20, q: 0.7 };
+
+        // What's active this round
+        let hasBand = true;
+        let hasHP = false;
+
+        // Which node is selected for interaction
+        let selectedNode = 'band'; // 'band' or 'hp'
+
         let score = 0;
         let round = 0;
         let streak = 0;
@@ -317,15 +341,18 @@
         let lastPinchDist = 0;
         let isPinching = false;
 
+        // Node hit radius in pixels
+        const HIT_RADIUS = 30;
+
         // --- Difficulty settings ---
         const difficulties = {
-            easy: { gainRange: [6, 12], qRange: [0.5, 1.5], freqRange: [100, 8000], hpRange: [80, 800] },
-            medium: { gainRange: [3, 9], qRange: [0.8, 3.0], freqRange: [60, 12000], hpRange: [40, 2000] },
-            hard: { gainRange: [2, 6], qRange: [1.5, 6.0], freqRange: [40, 16000], hpRange: [30, 4000] }
+            easy: { gainRange: [6, 12], qRange: [0.5, 1.5], freqRange: [100, 8000], hpRange: [80, 800], hpQ: [0.5, 1.0] },
+            medium: { gainRange: [3, 9], qRange: [0.8, 3.0], freqRange: [60, 12000], hpRange: [40, 2000], hpQ: [0.5, 1.5] },
+            hard: { gainRange: [2, 6], qRange: [1.5, 6.0], freqRange: [40, 16000], hpRange: [30, 4000], hpQ: [0.5, 2.0] }
         };
 
         // --- DOM refs ---
-        const playBtn = document.getElementById('playBtn');
+        const muteBtn = document.getElementById('muteBtn');
         const abBtn = document.getElementById('abBtn');
         const flatBtn = document.getElementById('flatBtn');
         const submitBtn = document.getElementById('submitBtn');
@@ -341,10 +368,32 @@
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            challengeFilter = audioCtx.createBiquadFilter();
-            userFilter = audioCtx.createBiquadFilter();
+
+            challengeHPF = audioCtx.createBiquadFilter();
+            challengeHPF.type = 'highpass';
+            challengeHPF.frequency.value = 20;
+            challengeHPF.Q.value = 0.7;
+
+            challengeBand = audioCtx.createBiquadFilter();
+            challengeBand.type = 'peaking';
+            challengeBand.frequency.value = 1000;
+            challengeBand.gain.value = 0;
+            challengeBand.Q.value = 1;
+
+            userHPF = audioCtx.createBiquadFilter();
+            userHPF.type = 'highpass';
+            userHPF.frequency.value = 20;
+            userHPF.Q.value = 0.7;
+
+            userBand = audioCtx.createBiquadFilter();
+            userBand.type = 'peaking';
+            userBand.frequency.value = 1000;
+            userBand.gain.value = 0;
+            userBand.Q.value = 1;
+
             gainNode = audioCtx.createGain();
             gainNode.gain.value = 0.15;
+
             generateNoise();
             generateMusic();
         }
@@ -406,18 +455,18 @@
                 }
             }
 
-            function addNoise(start, duration, amp, decay, highpass) {
+            function addNoise(start, duration, amp, decay, hp) {
                 const startSample = Math.floor(start * sampleRate);
                 const durSamples = Math.floor(duration * sampleRate);
                 const attackSamples = Math.floor(0.001 * sampleRate);
                 let prev = 0;
-                const alpha = highpass ? 0.85 : 0;
+                const alpha = hp ? 0.85 : 0;
                 for (let i = 0; i < durSamples && (startSample + i) < totalLen; i++) {
                     const t = i / sampleRate;
                     let env = amp * Math.exp(-t * decay);
                     if (i < attackSamples) env *= i / attackSamples;
                     let sample = env * (Math.random() * 2 - 1);
-                    if (highpass) {
+                    if (hp) {
                         const filtered = alpha * (prev + sample - (left[startSample + i] || 0));
                         prev = sample;
                         sample = filtered;
@@ -428,39 +477,29 @@
             }
 
             const beatSec = 60 / bpm;
-            const kickPattern = [0, 1.5, 2, 3.5, 4, 5.5, 6, 7.5];
-            kickPattern.forEach(beat => {
+            [0, 1.5, 2, 3.5, 4, 5.5, 6, 7.5].forEach(beat => {
                 const t = beat * beatSec;
                 addTone(55, t, 0.2, 0.7, 15);
                 addTone(110, t, 0.05, 0.3, 40);
             });
-
-            const snarePattern = [1, 3, 5, 7];
-            snarePattern.forEach(beat => {
+            [1, 3, 5, 7].forEach(beat => {
                 const t = beat * beatSec;
                 addTone(180, t, 0.05, 0.3, 30);
                 addNoise(t, 0.15, 0.25, 12, false);
             });
-
             for (let i = 0; i < beats * 2; i++) {
-                const t = (i * 0.5) * beatSec;
-                addNoise(t, 0.05, 0.1, 50, true);
+                addNoise((i * 0.5) * beatSec, 0.05, 0.1, 50, true);
             }
-
-            const bassNotes = [82.4, 0, 82.4, 98, 110, 0, 82.4, 73.4];
-            bassNotes.forEach((freq, i) => {
+            [82.4, 0, 82.4, 98, 110, 0, 82.4, 73.4].forEach((freq, i) => {
                 if (freq === 0) return;
                 const t = i * beatSec;
                 addTone(freq, t, beatSec * 0.8, 0.2, 3);
                 addTone(freq * 2, t, beatSec * 0.6, 0.08, 5);
                 addTone(freq * 3, t, beatSec * 0.4, 0.04, 8);
             });
-
-            const chordBeats = [0.5, 2.5, 4.5, 6.5];
-            const chordFreqs = [329.6, 392, 493.9];
-            chordBeats.forEach(beat => {
+            [0.5, 2.5, 4.5, 6.5].forEach(beat => {
                 const t = beat * beatSec;
-                chordFreqs.forEach(freq => {
+                [329.6, 392, 493.9].forEach(freq => {
                     addTone(freq, t, 0.15, 0.06, 10);
                     addTone(freq * 2, t, 0.1, 0.02, 15);
                 });
@@ -495,76 +534,108 @@
             return noiseBuffer;
         }
 
-        function startPlayback() {
-            if (isPlaying) stopPlayback();
+        // Start audio (called once, then just reconnect/swap as needed)
+        function ensurePlaying() {
             initAudio();
-
             if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // If source exists and is playing, just reconnect
+            if (sourceNode) {
+                reconnectAudio();
+                return;
+            }
 
             sourceNode = audioCtx.createBufferSource();
             sourceNode.buffer = getActiveBuffer();
             sourceNode.loop = true;
-
             reconnectAudio();
             sourceNode.start();
-            isPlaying = true;
-            playBtn.textContent = 'Stop';
-            playBtn.classList.add('active');
+            audioStarted = true;
+        }
+
+        function swapSource() {
+            // Swap the audio source without losing filter state
+            initAudio();
+            if (sourceNode) {
+                try { sourceNode.stop(); } catch(e) {}
+                try { sourceNode.disconnect(); } catch(e) {}
+            }
+            sourceNode = audioCtx.createBufferSource();
+            sourceNode.buffer = getActiveBuffer();
+            sourceNode.loop = true;
+            reconnectAudio();
+            sourceNode.start();
+            audioStarted = true;
         }
 
         function reconnectAudio() {
-            if (!sourceNode || !isPlaying) return;
+            if (!sourceNode) return;
 
             try { sourceNode.disconnect(); } catch(e) {}
-            try { challengeFilter.disconnect(); } catch(e) {}
-            try { userFilter.disconnect(); } catch(e) {}
+            try { challengeHPF.disconnect(); } catch(e) {}
+            try { challengeBand.disconnect(); } catch(e) {}
+            try { userHPF.disconnect(); } catch(e) {}
+            try { userBand.disconnect(); } catch(e) {}
             try { gainNode.disconnect(); } catch(e) {}
 
             const mode = getEffectiveMode();
+
             if (mode === 'challenge') {
-                sourceNode.connect(challengeFilter);
-                challengeFilter.connect(gainNode);
+                // source -> challengeHPF -> challengeBand -> gain -> dest
+                sourceNode.connect(challengeHPF);
+                challengeHPF.connect(challengeBand);
+                challengeBand.connect(gainNode);
             } else if (mode === 'user') {
-                sourceNode.connect(userFilter);
-                userFilter.connect(gainNode);
+                // source -> userHPF -> userBand -> gain -> dest
+                sourceNode.connect(userHPF);
+                userHPF.connect(userBand);
+                userBand.connect(gainNode);
             } else {
+                // flat
                 sourceNode.connect(gainNode);
             }
             gainNode.connect(audioCtx.destination);
         }
 
-        function stopPlayback() {
-            if (sourceNode) {
-                sourceNode.stop();
-                sourceNode.disconnect();
-                sourceNode = null;
+        function updateChallengeFilters() {
+            if (!challengeHPF || !challengeBand) return;
+
+            if (hasHP) {
+                challengeHPF.frequency.value = challenge.hp.freq;
+                challengeHPF.Q.value = challenge.hp.q;
+            } else {
+                // Bypass: set HPF to lowest freq
+                challengeHPF.frequency.value = 20;
+                challengeHPF.Q.value = 0.7;
             }
-            isPlaying = false;
-            playBtn.textContent = 'Play';
-            playBtn.classList.remove('active');
+
+            if (hasBand) {
+                challengeBand.frequency.value = challenge.band.freq;
+                challengeBand.gain.value = challenge.band.gain;
+                challengeBand.Q.value = challenge.band.q;
+            } else {
+                // Bypass: flat band
+                challengeBand.gain.value = 0;
+            }
         }
 
-        function updateChallengeFilter() {
-            if (!challengeFilter) return;
-            challengeFilter.type = currentFilterType;
-            challengeFilter.frequency.value = challenge.freq;
-            challengeFilter.Q.value = challenge.q;
-            if (currentFilterType === 'peaking') {
-                challengeFilter.gain.value = challenge.gain;
-            } else {
-                challengeFilter.gain.value = 0;
-            }
-        }
+        function updateUserFilters() {
+            if (!userHPF || !userBand) return;
 
-        function updateUserFilter() {
-            if (!userFilter) return;
-            userFilter.type = currentFilterType;
-            userFilter.frequency.value = userEQ.freq;
-            userFilter.Q.value = userEQ.q;
-            if (currentFilterType === 'peaking') {
-                userFilter.gain.value = userEQ.gain;
+            if (hasHP) {
+                userHPF.frequency.value = userHPEQ.freq;
+                userHPF.Q.value = userHPEQ.q;
             } else {
-                userFilter.gain.value = 0;
+                userHPF.frequency.value = 20;
+                userHPF.Q.value = 0.7;
+            }
+
+            if (hasBand) {
+                userBand.frequency.value = userBandEQ.freq;
+                userBand.gain.value = userBandEQ.gain;
+                userBand.Q.value = userBandEQ.q;
+            } else {
+                userBand.gain.value = 0;
             }
         }
 
@@ -595,16 +666,34 @@
             return GAIN_MAX - (y / height) * (GAIN_MAX - GAIN_MIN);
         }
 
+        // Get pixel position of a node
+        function getNodePixelPos(type) {
+            const rect = canvas.getBoundingClientRect();
+            const pad = { top: 20, bottom: 30, left: 45, right: 20 };
+            const gw = rect.width - pad.left - pad.right;
+            const gh = rect.height - pad.top - pad.bottom;
+
+            if (type === 'band') {
+                return {
+                    x: pad.left + freqToX(userBandEQ.freq, gw),
+                    y: pad.top + gainToY(userBandEQ.gain, gh)
+                };
+            } else {
+                return {
+                    x: pad.left + freqToX(userHPEQ.freq, gw),
+                    y: pad.top + gainToY(-3, gh) // HPF node sits at -3dB line
+                };
+            }
+        }
+
         // --- Draw EQ Curve ---
-        function getFilterResponse(freq, gain, q, type, freqArray) {
+        function getFilterResponseCurve(freq, gain, q, type, freqArray) {
             if (!audioCtx) return freqArray.map(() => 0);
             const tempFilter = audioCtx.createBiquadFilter();
             tempFilter.type = type;
             tempFilter.frequency.value = freq;
             tempFilter.Q.value = q;
-            if (type === 'peaking') {
-                tempFilter.gain.value = gain;
-            }
+            if (type === 'peaking') tempFilter.gain.value = gain;
 
             const magResponse = new Float32Array(freqArray.length);
             const phaseResponse = new Float32Array(freqArray.length);
@@ -651,13 +740,8 @@
                 ctx.beginPath();
                 ctx.moveTo(pad.left, y);
                 ctx.lineTo(w - pad.right, y);
-                if (g === 0) {
-                    ctx.strokeStyle = '#334';
-                    ctx.lineWidth = 2;
-                } else {
-                    ctx.strokeStyle = '#1b2838';
-                    ctx.lineWidth = 1;
-                }
+                if (g === 0) { ctx.strokeStyle = '#334'; ctx.lineWidth = 2; }
+                else { ctx.strokeStyle = '#1b2838'; ctx.lineWidth = 1; }
                 ctx.stroke();
                 ctx.fillText(g + 'dB', 5, y + 4);
             });
@@ -668,89 +752,127 @@
                 freqArray[i] = xToFreq((i / (numPoints - 1)) * gw, gw);
             }
 
-            // Draw challenge curve (only if revealed)
+            // --- Challenge curves (revealed only) ---
             if (roundRevealed) {
-                const challengeResponse = getFilterResponse(challenge.freq, challenge.gain, challenge.q, currentFilterType, freqArray);
+                let challengeTotal = new Array(numPoints).fill(0);
+                if (hasHP) {
+                    const hpResp = getFilterResponseCurve(challenge.hp.freq, 0, challenge.hp.q, 'highpass', freqArray);
+                    for (let i = 0; i < numPoints; i++) challengeTotal[i] += hpResp[i];
+                }
+                if (hasBand) {
+                    const bandResp = getFilterResponseCurve(challenge.band.freq, challenge.band.gain, challenge.band.q, 'peaking', freqArray);
+                    for (let i = 0; i < numPoints; i++) challengeTotal[i] += bandResp[i];
+                }
+
                 ctx.beginPath();
                 ctx.strokeStyle = '#e94560';
                 ctx.lineWidth = 2.5;
                 ctx.setLineDash([6, 4]);
                 for (let i = 0; i < numPoints; i++) {
                     const x = pad.left + (i / (numPoints - 1)) * gw;
-                    const y = pad.top + gainToY(challengeResponse[i], gh);
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
+                    const y = pad.top + gainToY(challengeTotal[i], gh);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 }
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
 
-            // Draw user curve
+            // --- User curves ---
             if (roundActive || roundRevealed) {
-                const userResponse = getFilterResponse(userEQ.freq, userEQ.gain, userEQ.q, currentFilterType, freqArray);
+                let userTotal = new Array(numPoints).fill(0);
+                if (hasHP) {
+                    const hpResp = getFilterResponseCurve(userHPEQ.freq, 0, userHPEQ.q, 'highpass', freqArray);
+                    for (let i = 0; i < numPoints; i++) userTotal[i] += hpResp[i];
+                }
+                if (hasBand) {
+                    const bandResp = getFilterResponseCurve(userBandEQ.freq, userBandEQ.gain, userBandEQ.q, 'peaking', freqArray);
+                    for (let i = 0; i < numPoints; i++) userTotal[i] += bandResp[i];
+                }
+
                 ctx.beginPath();
                 ctx.strokeStyle = '#00d4ff';
                 ctx.lineWidth = 2.5;
                 for (let i = 0; i < numPoints; i++) {
                     const x = pad.left + (i / (numPoints - 1)) * gw;
-                    const y = pad.top + gainToY(userResponse[i], gh);
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
+                    const y = pad.top + gainToY(userTotal[i], gh);
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 }
                 ctx.stroke();
 
-                // Draw user control point
-                const px = pad.left + freqToX(userEQ.freq, gw);
-                let py;
-                if (currentFilterType === 'highpass') {
-                    // Put the handle on the -3dB point (where cutoff is)
-                    py = pad.top + gainToY(-3, gh);
-                } else {
-                    py = pad.top + gainToY(userEQ.gain, gh);
+                // Draw band node
+                if (hasBand) {
+                    const bx = pad.left + freqToX(userBandEQ.freq, gw);
+                    const by = pad.top + gainToY(userBandEQ.gain, gh);
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = selectedNode === 'band' ? '#00d4ff' : '#006688';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
                 }
-                ctx.beginPath();
-                ctx.arc(px, py, 8, 0, Math.PI * 2);
-                ctx.fillStyle = '#00d4ff';
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(px, py, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#fff';
-                ctx.fill();
+
+                // Draw HP node
+                if (hasHP) {
+                    const hx = pad.left + freqToX(userHPEQ.freq, gw);
+                    const hy = pad.top + gainToY(-3, gh);
+                    ctx.beginPath();
+                    ctx.arc(hx, hy, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = selectedNode === 'hp' ? '#ff9f43' : '#885500';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
+                }
             }
 
-            // Draw target point (only if revealed)
+            // Draw target nodes (revealed)
             if (roundRevealed) {
-                const tx = pad.left + freqToX(challenge.freq, gw);
-                let ty;
-                if (currentFilterType === 'highpass') {
-                    ty = pad.top + gainToY(-3, gh);
-                } else {
-                    ty = pad.top + gainToY(challenge.gain, gh);
+                if (hasBand) {
+                    const tx = pad.left + freqToX(challenge.band.freq, gw);
+                    const ty = pad.top + gainToY(challenge.band.gain, gh);
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = '#e94560';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
                 }
-                ctx.beginPath();
-                ctx.arc(tx, ty, 8, 0, Math.PI * 2);
-                ctx.fillStyle = '#e94560';
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(tx, ty, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#fff';
-                ctx.fill();
+                if (hasHP) {
+                    const tx = pad.left + freqToX(challenge.hp.freq, gw);
+                    const ty = pad.top + gainToY(-3, gh);
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = '#e94560';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
+                }
             }
 
             // Legend
-            if (roundRevealed) {
-                ctx.font = '12px sans-serif';
-                ctx.fillStyle = '#00d4ff';
-                ctx.fillText('Your guess', w - 140, 35);
-                ctx.fillStyle = '#e94560';
-                ctx.fillText('Target', w - 140, 55);
+            if (roundActive || roundRevealed) {
+                ctx.font = '11px sans-serif';
+                let ly = 20;
+                if (hasBand) {
+                    ctx.fillStyle = selectedNode === 'band' ? '#00d4ff' : '#006688';
+                    ctx.fillText('Band EQ' + (selectedNode === 'band' ? ' [selected]' : ''), w - 150, ly += 15);
+                }
+                if (hasHP) {
+                    ctx.fillStyle = selectedNode === 'hp' ? '#ff9f43' : '#885500';
+                    ctx.fillText('High Pass' + (selectedNode === 'hp' ? ' [selected]' : ''), w - 150, ly += 15);
+                }
+                if (roundRevealed) {
+                    ctx.fillStyle = '#e94560';
+                    ctx.fillText('Target (dashed)', w - 150, ly += 15);
+                }
             }
-
-            // Mode indicator
-            ctx.font = '11px sans-serif';
-            ctx.fillStyle = '#556';
-            const modeText = currentFilterType === 'highpass' ? 'HIGH PASS' : 'BAND EQ';
-            ctx.fillText(modeText, pad.left + 5, pad.top + 15);
         }
 
         // --- Canvas Interaction ---
@@ -773,6 +895,8 @@
             const y = clientY - rect.top - pad.top;
 
             return {
+                x: clientX - rect.left,
+                y: clientY - rect.top,
                 freq: Math.max(FREQ_MIN, Math.min(FREQ_MAX, xToFreq(Math.max(0, Math.min(gw, x)), gw))),
                 gain: Math.max(GAIN_MIN, Math.min(GAIN_MAX, yToGain(Math.max(0, Math.min(gh, y)), gh)))
             };
@@ -784,11 +908,28 @@
             return Math.sqrt(dx * dx + dy * dy);
         }
 
+        function hitTestNode(px, py) {
+            // Check which node (if any) is near the tap point
+            if (hasBand) {
+                const pos = getNodePixelPos('band');
+                const dx = px - pos.x;
+                const dy = py - pos.y;
+                if (Math.sqrt(dx*dx + dy*dy) < HIT_RADIUS) return 'band';
+            }
+            if (hasHP) {
+                const pos = getNodePixelPos('hp');
+                const dx = px - pos.x;
+                const dy = py - pos.y;
+                if (Math.sqrt(dx*dx + dy*dy) < HIT_RADIUS) return 'hp';
+            }
+            return null;
+        }
+
         function handleCanvasDown(e) {
             if (!roundActive) return;
             e.preventDefault();
 
-            // Detect pinch start (two fingers)
+            // Two fingers = pinch
             if (e.touches && e.touches.length === 2) {
                 isPinching = true;
                 isDragging = false;
@@ -796,15 +937,21 @@
                 return;
             }
 
-            isDragging = true;
             const coords = getCanvasCoords(e);
-            userEQ.freq = coords.freq;
-            if (currentFilterType === 'peaking') {
-                userEQ.gain = coords.gain;
+            const hit = hitTestNode(coords.x, coords.y);
+
+            if (hit) {
+                // Hit a node — select it and start dragging
+                selectedNode = hit;
+                isDragging = true;
+                moveSelectedNode(coords);
+                updateUserFilters();
+                updateUserDisplay();
+                drawGraph();
+            } else {
+                // Didn't hit a node — don't move anything, just allow pinch
+                isDragging = false;
             }
-            updateUserFilter();
-            updateUserDisplay();
-            drawGraph();
         }
 
         function handleCanvasMove(e) {
@@ -815,35 +962,49 @@
             if (e.touches && e.touches.length === 2 && isPinching) {
                 const dist = getTouchDist(e);
                 const delta = (dist - lastPinchDist) * 0.02;
-                userEQ.q = Math.max(0.3, Math.min(8, userEQ.q + delta));
-                qSlider.value = userEQ.q;
-                qValueEl.textContent = userEQ.q.toFixed(1);
+                adjustSelectedQ(delta);
                 lastPinchDist = dist;
-                updateUserFilter();
-                updateUserDisplay();
-                drawGraph();
                 return;
             }
 
             if (!isDragging) return;
             const coords = getCanvasCoords(e);
-            userEQ.freq = coords.freq;
-            if (currentFilterType === 'peaking') {
-                userEQ.gain = coords.gain;
-            }
-            updateUserFilter();
+            moveSelectedNode(coords);
+            updateUserFilters();
             updateUserDisplay();
             drawGraph();
         }
 
         function handleCanvasUp(e) {
             isDragging = false;
-            if (e && e.touches && e.touches.length < 2) {
+            if (!e || !e.touches || e.touches.length < 2) {
                 isPinching = false;
             }
-            if (!e || !e.touches || e.touches.length === 0) {
-                isPinching = false;
+        }
+
+        function moveSelectedNode(coords) {
+            if (selectedNode === 'band' && hasBand) {
+                userBandEQ.freq = coords.freq;
+                userBandEQ.gain = coords.gain;
+            } else if (selectedNode === 'hp' && hasHP) {
+                userHPEQ.freq = coords.freq;
+                // HP node only moves horizontally (freq), no gain
             }
+        }
+
+        function adjustSelectedQ(delta) {
+            if (selectedNode === 'band' && hasBand) {
+                userBandEQ.q = Math.max(0.3, Math.min(8, userBandEQ.q + delta));
+            } else if (selectedNode === 'hp' && hasHP) {
+                userHPEQ.q = Math.max(0.3, Math.min(8, userHPEQ.q + delta));
+            }
+            // Update slider to reflect selected node's Q
+            const q = selectedNode === 'band' ? userBandEQ.q : userHPEQ.q;
+            qSlider.value = q;
+            qValueEl.textContent = q.toFixed(1);
+            updateUserFilters();
+            updateUserDisplay();
+            drawGraph();
         }
 
         canvas.addEventListener('mousedown', handleCanvasDown);
@@ -859,19 +1020,20 @@
             if (!roundActive) return;
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.2 : 0.2;
-            userEQ.q = Math.max(0.3, Math.min(8, userEQ.q + delta));
-            qSlider.value = userEQ.q;
-            qValueEl.textContent = userEQ.q.toFixed(1);
-            updateUserFilter();
-            updateUserDisplay();
-            drawGraph();
+            adjustSelectedQ(delta);
         });
 
         // --- UI Updates ---
         function updateUserDisplay() {
-            document.getElementById('userFreq').textContent = Math.round(userEQ.freq);
-            document.getElementById('userGain').textContent = userEQ.gain.toFixed(1);
-            document.getElementById('userQ').textContent = userEQ.q.toFixed(1);
+            if (selectedNode === 'band' && hasBand) {
+                document.getElementById('userFreq').textContent = Math.round(userBandEQ.freq);
+                document.getElementById('userGain').textContent = userBandEQ.gain.toFixed(1);
+                document.getElementById('userQ').textContent = userBandEQ.q.toFixed(1);
+            } else if (selectedNode === 'hp' && hasHP) {
+                document.getElementById('userFreq').textContent = Math.round(userHPEQ.freq);
+                document.getElementById('userGain').textContent = 'HPF';
+                document.getElementById('userQ').textContent = userHPEQ.q.toFixed(1);
+            }
         }
 
         function updateScoreDisplay() {
@@ -909,67 +1071,80 @@
             listenMode = 'challenge';
             flatMode = false;
 
-            // Determine filter type for this round
             const mode = gameModeSelect.value;
-            if (mode === 'band') {
-                currentFilterType = 'peaking';
-            } else if (mode === 'highpass') {
-                currentFilterType = 'highpass';
-            } else {
-                currentFilterType = Math.random() > 0.5 ? 'peaking' : 'highpass';
-            }
+            if (mode === 'band') { hasBand = true; hasHP = false; selectedNode = 'band'; }
+            else if (mode === 'highpass') { hasBand = false; hasHP = true; selectedNode = 'hp'; }
+            else { hasBand = true; hasHP = true; selectedNode = 'band'; }
 
             const diff = difficulties[diffSelect.value];
 
-            if (currentFilterType === 'highpass') {
-                const logMin = Math.log10(diff.hpRange[0]);
-                const logMax = Math.log10(diff.hpRange[1]);
-                challenge.freq = Math.pow(10, logMin + Math.random() * (logMax - logMin));
-                challenge.gain = 0;
-                challenge.q = 0.5 + Math.random() * 1.5; // Resonance Q for highpass
-            } else {
+            // Generate challenge
+            if (hasBand) {
                 const logMin = Math.log10(diff.freqRange[0]);
                 const logMax = Math.log10(diff.freqRange[1]);
-                challenge.freq = Math.pow(10, logMin + Math.random() * (logMax - logMin));
+                challenge.band.freq = Math.pow(10, logMin + Math.random() * (logMax - logMin));
                 const gainMag = diff.gainRange[0] + Math.random() * (diff.gainRange[1] - diff.gainRange[0]);
-                challenge.gain = Math.random() > 0.5 ? gainMag : -gainMag;
-                challenge.q = diff.qRange[0] + Math.random() * (diff.qRange[1] - diff.qRange[0]);
+                challenge.band.gain = Math.random() > 0.5 ? gainMag : -gainMag;
+                challenge.band.q = diff.qRange[0] + Math.random() * (diff.qRange[1] - diff.qRange[0]);
+            }
+            if (hasHP) {
+                const logMin = Math.log10(diff.hpRange[0]);
+                const logMax = Math.log10(diff.hpRange[1]);
+                challenge.hp.freq = Math.pow(10, logMin + Math.random() * (logMax - logMin));
+                challenge.hp.q = diff.hpQ[0] + Math.random() * (diff.hpQ[1] - diff.hpQ[0]);
             }
 
-            // Reset user EQ
-            if (currentFilterType === 'highpass') {
-                userEQ = { freq: 100, gain: 0, q: 0.7 };
-            } else {
-                userEQ = { freq: 1000, gain: 0, q: 1.0 };
-            }
-            qSlider.value = userEQ.q;
-            qValueEl.textContent = userEQ.q.toFixed(1);
+            // Reset user params
+            userBandEQ = { freq: 1000, gain: 0, q: 1.0 };
+            userHPEQ = { freq: 20, q: 0.7 };
 
-            updateChallengeFilter();
-            updateUserFilter();
+            const q = selectedNode === 'band' ? userBandEQ.q : userHPEQ.q;
+            qSlider.value = q;
+            qValueEl.textContent = q.toFixed(1);
+
+            updateChallengeFilters();
+            updateUserFilters();
             updateUserDisplay();
             updateScoreDisplay();
             updateListenButtons();
             hideFeedback();
             drawGraph();
 
-            if (!isPlaying) startPlayback();
-            else reconnectAudio();
+            ensurePlaying();
+            if (isMuted) {
+                isMuted = false;
+                gainNode.gain.value = 0.15;
+                muteBtn.textContent = 'Mute';
+                muteBtn.classList.remove('muted');
+            }
         }
 
         function submitGuess() {
             if (!roundActive || roundRevealed) return;
             roundRevealed = true;
 
-            let totalScore;
-            if (currentFilterType === 'highpass') {
-                const freqScore = calculateFreqScore(userEQ.freq, challenge.freq);
-                const qScore = calculateQScore(userEQ.q, challenge.q);
+            let totalScore = 0;
+
+            if (hasBand && hasHP) {
+                // Both mode: average of both scores
+                const bandFreqScore = calculateFreqScore(userBandEQ.freq, challenge.band.freq);
+                const bandGainScore = calculateGainScore(userBandEQ.gain, challenge.band.gain);
+                const bandQScore = calculateQScore(userBandEQ.q, challenge.band.q);
+                const bandScore = bandFreqScore * 0.5 + bandGainScore * 0.35 + bandQScore * 0.15;
+
+                const hpFreqScore = calculateFreqScore(userHPEQ.freq, challenge.hp.freq);
+                const hpQScore = calculateQScore(userHPEQ.q, challenge.hp.q);
+                const hpScore = hpFreqScore * 0.8 + hpQScore * 0.2;
+
+                totalScore = Math.round(((bandScore + hpScore) / 2) * 100);
+            } else if (hasHP) {
+                const freqScore = calculateFreqScore(userHPEQ.freq, challenge.hp.freq);
+                const qScore = calculateQScore(userHPEQ.q, challenge.hp.q);
                 totalScore = Math.round((freqScore * 0.8 + qScore * 0.2) * 100);
             } else {
-                const freqScore = calculateFreqScore(userEQ.freq, challenge.freq);
-                const gainScore = calculateGainScore(userEQ.gain, challenge.gain);
-                const qScore = calculateQScore(userEQ.q, challenge.q);
+                const freqScore = calculateFreqScore(userBandEQ.freq, challenge.band.freq);
+                const gainScore = calculateGainScore(userBandEQ.gain, challenge.band.gain);
+                const qScore = calculateQScore(userBandEQ.q, challenge.band.q);
                 totalScore = Math.round((freqScore * 0.5 + gainScore * 0.35 + qScore * 0.15) * 100);
             }
 
@@ -990,10 +1165,10 @@
             drawGraph();
 
             function getDetails() {
-                if (currentFilterType === 'highpass') {
-                    return `Target: HPF @ ${Math.round(challenge.freq)}Hz, Q=${challenge.q.toFixed(1)}`;
-                }
-                return `Target: ${Math.round(challenge.freq)}Hz, ${challenge.gain.toFixed(1)}dB, Q=${challenge.q.toFixed(1)}`;
+                let parts = [];
+                if (hasBand) parts.push(`Band: ${Math.round(challenge.band.freq)}Hz ${challenge.band.gain.toFixed(1)}dB Q${challenge.band.q.toFixed(1)}`);
+                if (hasHP) parts.push(`HPF: ${Math.round(challenge.hp.freq)}Hz Q${challenge.hp.q.toFixed(1)}`);
+                return parts.join(' | ');
             }
         }
 
@@ -1022,31 +1197,39 @@
         }
 
         // --- Event Listeners ---
-        playBtn.addEventListener('click', () => {
-            if (isPlaying) stopPlayback();
-            else startPlayback();
+        muteBtn.addEventListener('click', () => {
+            if (!audioCtx) return;
+            isMuted = !isMuted;
+            gainNode.gain.value = isMuted ? 0 : 0.15;
+            muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+            muteBtn.classList.toggle('muted', isMuted);
         });
 
         abBtn.addEventListener('click', () => {
             flatMode = false;
             listenMode = listenMode === 'challenge' ? 'user' : 'challenge';
             updateListenButtons();
-            if (isPlaying) reconnectAudio();
+            if (audioStarted) reconnectAudio();
         });
 
         flatBtn.addEventListener('click', () => {
             flatMode = !flatMode;
             updateListenButtons();
-            if (isPlaying) reconnectAudio();
+            if (audioStarted) reconnectAudio();
         });
 
         submitBtn.addEventListener('click', submitGuess);
         newRoundBtn.addEventListener('click', newRound);
 
         qSlider.addEventListener('input', () => {
-            userEQ.q = parseFloat(qSlider.value);
-            qValueEl.textContent = userEQ.q.toFixed(1);
-            updateUserFilter();
+            const val = parseFloat(qSlider.value);
+            qValueEl.textContent = val.toFixed(1);
+            if (selectedNode === 'band' && hasBand) {
+                userBandEQ.q = val;
+            } else if (selectedNode === 'hp' && hasHP) {
+                userHPEQ.q = val;
+            }
+            updateUserFilters();
             updateUserDisplay();
             drawGraph();
         });
@@ -1058,15 +1241,10 @@
             }
             customBuffer = null;
             if (audioCtx) {
-                if (trackSelect.value === 'music') {
-                    // already generated
-                } else {
+                if (trackSelect.value !== 'music') {
                     generateNoise();
                 }
-                if (isPlaying) {
-                    stopPlayback();
-                    startPlayback();
-                }
+                if (audioStarted) swapSource();
             }
         });
 
@@ -1084,9 +1262,7 @@
             e.preventDefault();
             dropZone.classList.remove('dragover');
             const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('audio/')) {
-                loadAudioFile(file);
-            }
+            if (file && file.type.startsWith('audio/')) loadAudioFile(file);
         });
 
         dropZone.addEventListener('click', () => {
@@ -1107,10 +1283,7 @@
                     customBuffer = buffer;
                     trackSelect.value = 'custom';
                     dropZone.textContent = `Loaded: ${file.name}`;
-                    if (isPlaying) {
-                        stopPlayback();
-                        startPlayback();
-                    }
+                    if (audioStarted) swapSource();
                 });
             };
             reader.readAsArrayBuffer(file);
