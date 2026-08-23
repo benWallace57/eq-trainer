@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EQ Trainer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+
+        .top-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .stat {
+            background: #16213e;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .stat span {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        select, button {
+            background: #16213e;
+            color: #eee;
+            border: 1px solid #0f3460;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        select:hover, button:hover {
+            background: #0f3460;
+        }
+
+        button.active {
+            background: #00d4ff;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        button.submit-btn {
+            background: #e94560;
+            border-color: #e94560;
+            font-weight: bold;
+        }
+
+        button.submit-btn:hover {
+            background: #ff6b6b;
+        }
+
+        button.new-round-btn {
+            background: #0f3460;
+            border-color: #00d4ff;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin: 10px 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 400px;
+            background: #0d1b2a;
+            border-radius: 12px;
+            border: 1px solid #0f3460;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .eq-info {
+            background: #16213e;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .eq-info span {
+            color: #00d4ff;
+        }
+
+        .feedback {
+            margin-top: 15px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            display: none;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.good {
+            background: #1b4332;
+            border: 1px solid #2d6a4f;
+            color: #95d5b2;
+        }
+
+        .feedback.ok {
+            background: #3d2e00;
+            border: 1px solid #6b5200;
+            color: #ffd60a;
+        }
+
+        .feedback.bad {
+            background: #3d0000;
+            border: 1px solid #6b0000;
+            color: #ff6b6b;
+        }
+
+        .instructions {
+            max-width: 900px;
+            background: #16213e;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        .instructions strong {
+            color: #00d4ff;
+        }
+
+        .drop-zone {
+            border: 2px dashed #0f3460;
+            border-radius: 8px;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .drop-zone.dragover {
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .q-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #16213e;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .q-control input[type="range"] {
+            width: 80px;
+            accent-color: #00d4ff;
+        }
+
+        .q-control label {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .q-control span {
+            font-size: 0.85rem;
+            color: #00d4ff;
+            min-width: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>EQ Trainer</h1>
+
+    <div class="top-bar">
+        <div class="stat">Score: <span id="score">0</span></div>
+        <div class="stat">Round: <span id="round">0</span>/10</div>
+        <div class="stat">Streak: <span id="streak">0</span></div>
+        <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+        </select>
+        <select id="trackSelect">
+            <option value="pink">Pink Noise</option>
+            <option value="white">White Noise</option>
+            <option value="custom">Custom Audio...</option>
+        </select>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="eqCanvas"></canvas>
+    </div>
+
+    <div class="eq-info">
+        Your EQ: <span id="userFreq">1000</span> Hz | <span id="userGain">0.0</span> dB | Q: <span id="userQ">1.0</span>
+    </div>
+
+    <div class="controls">
+        <button id="playBtn">Play</button>
+        <button id="abBtn">A/B: EQ On</button>
+        <button id="submitBtn" class="submit-btn">Submit Guess</button>
+        <button id="newRoundBtn" class="new-round-btn">New Round</button>
+        <div class="q-control">
+            <label>Q:</label>
+            <input type="range" id="qSlider" min="0.3" max="8" step="0.1" value="1.0">
+            <span id="qValue">1.0</span>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="drop-zone" id="dropZone">
+        Drag & drop an audio file here to use your own music
+    </div>
+
+    <div class="instructions">
+        <strong>How to play:</strong> Click "New Round" to start. A random EQ boost or cut is applied to the audio.
+        Toggle "A/B" to hear the difference. Click and drag on the graph to set your frequency (X) and gain (Y).
+        Use the Q slider to set bandwidth. Click "Submit Guess" to check your answer.
+        <br><br>
+        <strong>Tips:</strong> Scroll wheel on the graph adjusts Q. Wider Q = easier to hear. Listen for the character of each frequency range.
+    </div>
+
+    <script>
+    (function() {
+        // --- Audio Engine ---
+        let audioCtx = null;
+        let sourceNode = null;
+        let challengeFilter = null;
+        let userFilter = null;
+        let gainNode = null;
+        let isPlaying = false;
+        let noiseBuffer = null;
+        let customBuffer = null;
+        let eqBypassed = false;
+
+        // --- Game State ---
+        let challenge = { freq: 1000, gain: 0, q: 1.0 };
+        let userEQ = { freq: 1000, gain: 0, q: 1.0 };
+        let score = 0;
+        let round = 0;
+        let streak = 0;
+        let roundActive = false;
+        let roundRevealed = false;
+
+        // --- Canvas ---
+        const canvas = document.getElementById('eqCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDragging = false;
+        let canvasRect;
+
+        // --- Difficulty settings ---
+        const difficulties = {
+            easy: { gainRange: [6, 12], qRange: [0.5, 1.5], freqRange: [100, 8000] },
+            medium: { gainRange: [3, 9], qRange: [0.8, 3.0], freqRange: [60, 12000] },
+            hard: { gainRange: [2, 6], qRange: [1.5, 6.0], freqRange: [40, 16000] }
+        };
+
+        // --- DOM refs ---
+        const playBtn = document.getElementById('playBtn');
+        const abBtn = document.getElementById('abBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const newRoundBtn = document.getElementById('newRoundBtn');
+        const diffSelect = document.getElementById('difficulty');
+        const trackSelect = document.getElementById('trackSelect');
+        const qSlider = document.getElementById('qSlider');
+        const qValueEl = document.getElementById('qValue');
+        const feedbackEl = document.getElementById('feedback');
+        const dropZone = document.getElementById('dropZone');
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            challengeFilter = audioCtx.createBiquadFilter();
+            challengeFilter.type = 'peaking';
+            userFilter = audioCtx.createBiquadFilter();
+            userFilter.type = 'peaking';
+            gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0.7;
+            generateNoise();
+        }
+
+        function generateNoise() {
+            const sampleRate = audioCtx.sampleRate;
+            const length = sampleRate * 10; // 10 seconds
+            noiseBuffer = audioCtx.createBuffer(2, length, sampleRate);
+
+            for (let channel = 0; channel < 2; channel++) {
+                const data = noiseBuffer.getChannelData(channel);
+                if (trackSelect.value === 'white') {
+                    for (let i = 0; i < length; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                } else {
+                    // Pink noise using Voss-McCartney algorithm
+                    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                    for (let i = 0; i < length; i++) {
+                        const white = Math.random() * 2 - 1;
+                        b0 = 0.99886 * b0 + white * 0.0555179;
+                        b1 = 0.99332 * b1 + white * 0.0750759;
+                        b2 = 0.96900 * b2 + white * 0.1538520;
+                        b3 = 0.86650 * b3 + white * 0.3104856;
+                        b4 = 0.55000 * b4 + white * 0.5329522;
+                        b5 = -0.7616 * b5 - white * 0.0168980;
+                        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+                        b6 = white * 0.115926;
+                    }
+                }
+            }
+        }
+
+        function startPlayback() {
+            if (isPlaying) stopPlayback();
+            initAudio();
+
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            sourceNode = audioCtx.createBufferSource();
+            sourceNode.buffer = customBuffer || noiseBuffer;
+            sourceNode.loop = true;
+
+            // Chain: source -> challengeFilter -> gainNode -> destination
+            sourceNode.connect(challengeFilter);
+            challengeFilter.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            sourceNode.start();
+            isPlaying = true;
+            playBtn.textContent = 'Stop';
+            playBtn.classList.add('active');
+        }
+
+        function stopPlayback() {
+            if (sourceNode) {
+                sourceNode.stop();
+                sourceNode.disconnect();
+                sourceNode = null;
+            }
+            isPlaying = false;
+            playBtn.textContent = 'Play';
+            playBtn.classList.remove('active');
+        }
+
+        function updateChallengeFilter() {
+            if (!challengeFilter) return;
+            if (eqBypassed) {
+                challengeFilter.frequency.value = 1000;
+                challengeFilter.gain.value = 0;
+                challengeFilter.Q.value = 1;
+            } else {
+                challengeFilter.frequency.value = challenge.freq;
+                challengeFilter.gain.value = challenge.gain;
+                challengeFilter.Q.value = challenge.q;
+            }
+        }
+
+        function updateUserFilter() {
+            if (!userFilter) return;
+            userFilter.frequency.value = userEQ.freq;
+            userFilter.gain.value = userEQ.gain;
+            userFilter.Q.value = userEQ.q;
+        }
+
+        // --- Frequency/Canvas Mapping ---
+        const FREQ_MIN = 20;
+        const FREQ_MAX = 20000;
+        const GAIN_MIN = -15;
+        const GAIN_MAX = 15;
+
+        function freqToX(freq, width) {
+            const logMin = Math.log10(FREQ_MIN);
+            const logMax = Math.log10(FREQ_MAX);
+            return ((Math.log10(freq) - logMin) / (logMax - logMin)) * width;
+        }
+
+        function xToFreq(x, width) {
+            const logMin = Math.log10(FREQ_MIN);
+            const logMax = Math.log10(FREQ_MAX);
+            const logFreq = logMin + (x / width) * (logMax - logMin);
+            return Math.pow(10, logFreq);
+        }
+
+        function gainToY(gain, height) {
+            return ((GAIN_MAX - gain) / (GAIN_MAX - GAIN_MIN)) * height;
+        }
+
+        function yToGain(y, height) {
+            return GAIN_MAX - (y / height) * (GAIN_MAX - GAIN_MIN);
+        }
+
+        // --- Draw EQ Curve ---
+        function getFilterResponse(freq, gain, q, freqArray) {
+            // Create a temporary filter to get response
+            if (!audioCtx) return freqArray.map(() => 0);
+            const tempFilter = audioCtx.createBiquadFilter();
+            tempFilter.type = 'peaking';
+            tempFilter.frequency.value = freq;
+            tempFilter.gain.value = gain;
+            tempFilter.Q.value = q;
+
+            const magResponse = new Float32Array(freqArray.length);
+            const phaseResponse = new Float32Array(freqArray.length);
+            tempFilter.getFrequencyResponse(freqArray, magResponse, phaseResponse);
+
+            return Array.from(magResponse).map(m => 20 * Math.log10(m));
+        }
+
+        function drawGraph() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const w = rect.width;
+            const h = rect.height;
+            const pad = { top: 20, bottom: 30, left: 45, right: 20 };
+            const gw = w - pad.left - pad.right;
+            const gh = h - pad.top - pad.bottom;
+
+            // Background
+            ctx.fillStyle = '#0d1b2a';
+            ctx.fillRect(0, 0, w, h);
+
+            // Grid
+            ctx.strokeStyle = '#1b2838';
+            ctx.lineWidth = 1;
+            ctx.font = '11px sans-serif';
+            ctx.fillStyle = '#445';
+
+            // Frequency grid lines
+            const freqLabels = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+            freqLabels.forEach(f => {
+                const x = pad.left + freqToX(f, gw);
+                ctx.beginPath();
+                ctx.moveTo(x, pad.top);
+                ctx.lineTo(x, h - pad.bottom);
+                ctx.stroke();
+                const label = f >= 1000 ? (f / 1000) + 'k' : f.toString();
+                ctx.fillText(label, x - 8, h - pad.bottom + 15);
+            });
+
+            // Gain grid lines
+            const gainLines = [-12, -9, -6, -3, 0, 3, 6, 9, 12];
+            gainLines.forEach(g => {
+                const y = pad.top + gainToY(g, gh);
+                ctx.beginPath();
+                ctx.moveTo(pad.left, y);
+                ctx.lineTo(w - pad.right, y);
+                if (g === 0) {
+                    ctx.strokeStyle = '#334';
+                    ctx.lineWidth = 2;
+                } else {
+                    ctx.strokeStyle = '#1b2838';
+                    ctx.lineWidth = 1;
+                }
+                ctx.stroke();
+                ctx.fillText(g + 'dB', 5, y + 4);
+            });
+
+            // Generate frequency points for curve
+            const numPoints = 200;
+            const freqArray = new Float32Array(numPoints);
+            for (let i = 0; i < numPoints; i++) {
+                freqArray[i] = xToFreq((i / (numPoints - 1)) * gw, gw);
+            }
+
+            // Draw challenge curve (only if revealed)
+            if (roundRevealed) {
+                const challengeResponse = getFilterResponse(challenge.freq, challenge.gain, challenge.q, freqArray);
+                ctx.beginPath();
+                ctx.strokeStyle = '#e94560';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([6, 4]);
+                for (let i = 0; i < numPoints; i++) {
+                    const x = pad.left + (i / (numPoints - 1)) * gw;
+                    const y = pad.top + gainToY(challengeResponse[i], gh);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw user curve
+            if (roundActive || roundRevealed) {
+                const userResponse = getFilterResponse(userEQ.freq, userEQ.gain, userEQ.q, freqArray);
+                ctx.beginPath();
+                ctx.strokeStyle = '#00d4ff';
+                ctx.lineWidth = 2.5;
+                for (let i = 0; i < numPoints; i++) {
+                    const x = pad.left + (i / (numPoints - 1)) * gw;
+                    const y = pad.top + gainToY(userResponse[i], gh);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Draw user control point
+                const px = pad.left + freqToX(userEQ.freq, gw);
+                const py = pad.top + gainToY(userEQ.gain, gh);
+                ctx.beginPath();
+                ctx.arc(px, py, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#00d4ff';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+            }
+
+            // Draw target point (only if revealed)
+            if (roundRevealed) {
+                const tx = pad.left + freqToX(challenge.freq, gw);
+                const ty = pad.top + gainToY(challenge.gain, gh);
+                ctx.beginPath();
+                ctx.arc(tx, ty, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#e94560';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(tx, ty, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+            }
+
+            // Legend
+            if (roundRevealed) {
+                ctx.font = '12px sans-serif';
+                ctx.fillStyle = '#00d4ff';
+                ctx.fillText('● Your guess', w - 150, 35);
+                ctx.fillStyle = '#e94560';
+                ctx.fillText('● Target', w - 150, 55);
+            }
+        }
+
+        // --- Canvas Interaction ---
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const pad = { top: 20, bottom: 30, left: 45, right: 20 };
+            const gw = rect.width - pad.left - pad.right;
+            const gh = rect.height - pad.top - pad.bottom;
+
+            let clientX, clientY;
+            if (e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            const x = clientX - rect.left - pad.left;
+            const y = clientY - rect.top - pad.top;
+
+            return {
+                freq: Math.max(FREQ_MIN, Math.min(FREQ_MAX, xToFreq(Math.max(0, Math.min(gw, x)), gw))),
+                gain: Math.max(GAIN_MIN, Math.min(GAIN_MAX, yToGain(Math.max(0, Math.min(gh, y)), gh)))
+            };
+        }
+
+        function handleCanvasDown(e) {
+            if (!roundActive || roundRevealed) return;
+            e.preventDefault();
+            isDragging = true;
+            const coords = getCanvasCoords(e);
+            userEQ.freq = coords.freq;
+            userEQ.gain = coords.gain;
+            updateUserDisplay();
+            drawGraph();
+        }
+
+        function handleCanvasMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const coords = getCanvasCoords(e);
+            userEQ.freq = coords.freq;
+            userEQ.gain = coords.gain;
+            updateUserDisplay();
+            drawGraph();
+        }
+
+        function handleCanvasUp() {
+            isDragging = false;
+        }
+
+        canvas.addEventListener('mousedown', handleCanvasDown);
+        canvas.addEventListener('mousemove', handleCanvasMove);
+        canvas.addEventListener('mouseup', handleCanvasUp);
+        canvas.addEventListener('mouseleave', handleCanvasUp);
+        canvas.addEventListener('touchstart', handleCanvasDown, { passive: false });
+        canvas.addEventListener('touchmove', handleCanvasMove, { passive: false });
+        canvas.addEventListener('touchend', handleCanvasUp);
+
+        // Mouse wheel for Q
+        canvas.addEventListener('wheel', (e) => {
+            if (!roundActive || roundRevealed) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            userEQ.q = Math.max(0.3, Math.min(8, userEQ.q + delta));
+            qSlider.value = userEQ.q;
+            qValueEl.textContent = userEQ.q.toFixed(1);
+            updateUserDisplay();
+            drawGraph();
+        });
+
+        // --- UI Updates ---
+        function updateUserDisplay() {
+            document.getElementById('userFreq').textContent = Math.round(userEQ.freq);
+            document.getElementById('userGain').textContent = userEQ.gain.toFixed(1);
+            document.getElementById('userQ').textContent = userEQ.q.toFixed(1);
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('round').textContent = round;
+            document.getElementById('streak').textContent = streak;
+        }
+
+        // --- Game Logic ---
+        function newRound() {
+            initAudio();
+            round++;
+            roundActive = true;
+            roundRevealed = false;
+            eqBypassed = false;
+
+            const diff = difficulties[diffSelect.value];
+            const logMin = Math.log10(diff.freqRange[0]);
+            const logMax = Math.log10(diff.freqRange[1]);
+            challenge.freq = Math.pow(10, logMin + Math.random() * (logMax - logMin));
+
+            const gainMag = diff.gainRange[0] + Math.random() * (diff.gainRange[1] - diff.gainRange[0]);
+            challenge.gain = Math.random() > 0.5 ? gainMag : -gainMag;
+
+            challenge.q = diff.qRange[0] + Math.random() * (diff.qRange[1] - diff.qRange[0]);
+
+            // Reset user EQ to flat
+            userEQ = { freq: 1000, gain: 0, q: 1.0 };
+            qSlider.value = 1.0;
+            qValueEl.textContent = '1.0';
+
+            updateChallengeFilter();
+            updateUserDisplay();
+            updateScoreDisplay();
+            hideFeedback();
+            drawGraph();
+
+            abBtn.textContent = 'A/B: EQ On';
+            abBtn.classList.add('active');
+
+            if (!isPlaying) startPlayback();
+        }
+
+        function submitGuess() {
+            if (!roundActive || roundRevealed) return;
+            roundRevealed = true;
+
+            // Score calculation
+            const freqScore = calculateFreqScore(userEQ.freq, challenge.freq);
+            const gainScore = calculateGainScore(userEQ.gain, challenge.gain);
+            const qScore = calculateQScore(userEQ.q, challenge.q);
+
+            const totalScore = Math.round((freqScore * 0.5 + gainScore * 0.35 + qScore * 0.15) * 100);
+            score += totalScore;
+
+            if (totalScore >= 70) {
+                streak++;
+                showFeedback(`Excellent! +${totalScore} points. ` + getDetails(), 'good');
+            } else if (totalScore >= 40) {
+                streak++;
+                showFeedback(`Not bad! +${totalScore} points. ` + getDetails(), 'ok');
+            } else {
+                streak = 0;
+                showFeedback(`Keep practicing! +${totalScore} points. ` + getDetails(), 'bad');
+            }
+
+            updateScoreDisplay();
+            drawGraph();
+
+            function getDetails() {
+                return `Target: ${Math.round(challenge.freq)}Hz, ${challenge.gain.toFixed(1)}dB, Q=${challenge.q.toFixed(1)}`;
+            }
+        }
+
+        function calculateFreqScore(userFreq, targetFreq) {
+            // Score based on octave distance
+            const octaveDist = Math.abs(Math.log2(userFreq / targetFreq));
+            return Math.max(0, 1 - octaveDist * 2);
+        }
+
+        function calculateGainScore(userGain, targetGain) {
+            const diff = Math.abs(userGain - targetGain);
+            return Math.max(0, 1 - diff / 12);
+        }
+
+        function calculateQScore(userQ, targetQ) {
+            const ratio = Math.max(userQ, targetQ) / Math.min(userQ, targetQ);
+            return Math.max(0, 1 - (ratio - 1) / 3);
+        }
+
+        function showFeedback(msg, type) {
+            feedbackEl.textContent = msg;
+            feedbackEl.className = 'feedback show ' + type;
+        }
+
+        function hideFeedback() {
+            feedbackEl.className = 'feedback';
+        }
+
+        // --- Event Listeners ---
+        playBtn.addEventListener('click', () => {
+            if (isPlaying) stopPlayback();
+            else startPlayback();
+        });
+
+        abBtn.addEventListener('click', () => {
+            eqBypassed = !eqBypassed;
+            abBtn.textContent = eqBypassed ? 'A/B: EQ Off' : 'A/B: EQ On';
+            abBtn.classList.toggle('active', !eqBypassed);
+            updateChallengeFilter();
+        });
+
+        submitBtn.addEventListener('click', submitGuess);
+        newRoundBtn.addEventListener('click', newRound);
+
+        qSlider.addEventListener('input', () => {
+            userEQ.q = parseFloat(qSlider.value);
+            qValueEl.textContent = userEQ.q.toFixed(1);
+            updateUserDisplay();
+            drawGraph();
+        });
+
+        trackSelect.addEventListener('change', () => {
+            if (trackSelect.value === 'custom') {
+                dropZone.click();
+                return;
+            }
+            customBuffer = null;
+            if (audioCtx) {
+                generateNoise();
+                if (isPlaying) {
+                    stopPlayback();
+                    startPlayback();
+                }
+            }
+        });
+
+        diffSelect.addEventListener('change', () => {
+            // Difficulty change takes effect on next round
+        });
+
+        // --- Drag and Drop ---
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('audio/')) {
+                loadAudioFile(file);
+            }
+        });
+
+        // Also support click to upload
+        dropZone.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*';
+            input.onchange = (e) => {
+                if (e.target.files[0]) loadAudioFile(e.target.files[0]);
+            };
+            input.click();
+        });
+
+        function loadAudioFile(file) {
+            initAudio();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                audioCtx.decodeAudioData(e.target.result, (buffer) => {
+                    customBuffer = buffer;
+                    trackSelect.value = 'custom';
+                    dropZone.textContent = `Loaded: ${file.name}`;
+                    if (isPlaying) {
+                        stopPlayback();
+                        startPlayback();
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- Resize handling ---
+        window.addEventListener('resize', drawGraph);
+
+        // --- Init ---
+        drawGraph();
+        updateUserDisplay();
+        updateScoreDisplay();
+    })();
+    </script>
+</body>
+</html>
