@@ -1173,18 +1173,22 @@
         }
 
         function calculateFreqScore(userFreq, targetFreq) {
+            // Log scale: score based on octave distance
+            // 0 octaves = 100%, 1/3 octave = 75%, 2/3 octave = 50%, 1.5 octaves = 0%
             const octaveDist = Math.abs(Math.log2(userFreq / targetFreq));
-            return Math.max(0, 1 - octaveDist * 2);
+            return Math.max(0, 1 - (octaveDist / 1.5));
         }
 
         function calculateGainScore(userGain, targetGain) {
+            // 0dB off = 100%, 6dB off = 50%, 12dB off = 0%
             const diff = Math.abs(userGain - targetGain);
             return Math.max(0, 1 - diff / 12);
         }
 
         function calculateQScore(userQ, targetQ) {
+            // Ratio-based: Q off by factor of 2 = 75%, factor of 5 = 0%
             const ratio = Math.max(userQ, targetQ) / Math.min(userQ, targetQ);
-            return Math.max(0, 1 - (ratio - 1) / 3);
+            return Math.max(0, 1 - (ratio - 1) / 4);
         }
 
         function showFeedback(msg, type) {
