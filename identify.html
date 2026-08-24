@@ -196,6 +196,8 @@
         let round = 0;
         let roundActive = false;
         let guessed = false;
+        let roundTol = 0;
+        let lastGuessFreq = null;
         let targetFreq = 1000;
         let listenMode = 'challenge';
         let flatMode = false;
@@ -387,7 +389,7 @@
         }
 
         // --- Drawing ---
-        function drawSpectrum(guessFreq) {
+        function drawSpectrum() {
             const dpr = window.devicePixelRatio || 1;
             const rect = canvas.getBoundingClientRect();
             canvas.width = rect.width * dpr;
@@ -421,10 +423,9 @@
             });
 
             if (guessed) {
-                const tol = getTolerance();
                 const targetX = pad.left + freqToX(targetFreq, gw);
-                const lowFreq = targetFreq * Math.pow(2, -tol);
-                const highFreq = targetFreq * Math.pow(2, tol);
+                const lowFreq = targetFreq * Math.pow(2, -roundTol);
+                const highFreq = targetFreq * Math.pow(2, roundTol);
                 const lowX = pad.left + freqToX(Math.max(FREQ_MIN, lowFreq), gw);
                 const highX = pad.left + freqToX(Math.min(FREQ_MAX, highFreq), gw);
 
@@ -447,10 +448,10 @@
                 ctx.fillText(targetLabel, targetX + 5, pad.top + 15);
 
                 // User guess line
-                if (guessFreq) {
-                    const guessX = pad.left + freqToX(guessFreq, gw);
-                    const octaveDist = Math.abs(Math.log2(guessFreq / targetFreq));
-                    const correct = octaveDist <= tol;
+                if (lastGuessFreq) {
+                    const guessX = pad.left + freqToX(lastGuessFreq, gw);
+                    const octaveDist = Math.abs(Math.log2(lastGuessFreq / targetFreq));
+                    const correct = octaveDist <= roundTol;
                     ctx.strokeStyle = correct ? '#4ade80' : '#f87171';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([4, 4]);
@@ -517,24 +518,25 @@
             const x = clientX - rect.left - pad.left;
             const guessFreq = xToFreq(Math.max(0, Math.min(gw, x)), gw);
 
-            const tol = getTolerance();
+            roundTol = getTolerance();
+            lastGuessFreq = guessFreq;
             const octaveDist = Math.abs(Math.log2(guessFreq / targetFreq));
-            const correct = octaveDist <= tol;
+            const correct = octaveDist <= roundTol;
 
             const K = getK();
             if (correct) {
                 elo += K;
                 streak++;
-                showFeedback(`Correct! +${K} ELO (${Math.round(targetFreq)}Hz) — off by ${octaveDist.toFixed(2)} oct (need < ${tol.toFixed(2)})`, 'good');
+                showFeedback(`Correct! +${K} ELO (${Math.round(targetFreq)}Hz) — off by ${octaveDist.toFixed(2)} oct (need < ${roundTol.toFixed(2)})`, 'good');
             } else {
                 elo = Math.max(100, elo - K);
                 streak = 0;
-                showFeedback(`Wrong! -${K} ELO — target was ${Math.round(targetFreq)}Hz, off by ${octaveDist.toFixed(2)} oct (need < ${tol.toFixed(2)})`, 'bad');
+                showFeedback(`Wrong! -${K} ELO — target was ${Math.round(targetFreq)}Hz, off by ${octaveDist.toFixed(2)} oct (need < ${roundTol.toFixed(2)})`, 'bad');
             }
 
             saveElo();
             updateStats();
-            drawSpectrum(guessFreq);
+            drawSpectrum();
 
             // Switch to flat so they can hear the difference
             listenMode = 'flat';
