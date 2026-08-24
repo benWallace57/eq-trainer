@@ -525,11 +525,11 @@
             if (correct) {
                 elo += K;
                 streak++;
-                showFeedback(`Correct! +${K} ELO (${Math.round(targetFreq)}Hz) — off by ${octaveDist.toFixed(2)} octaves`, 'good');
+                showFeedback(`Correct! +${K} ELO (${Math.round(targetFreq)}Hz) — off by ${octaveDist.toFixed(2)} oct (need < ${tol.toFixed(2)})`, 'good');
             } else {
                 elo = Math.max(100, elo - K);
                 streak = 0;
-                showFeedback(`Wrong! -${K} ELO — target was ${Math.round(targetFreq)}Hz, you were ${octaveDist.toFixed(2)} octaves off`, 'bad');
+                showFeedback(`Wrong! -${K} ELO — target was ${Math.round(targetFreq)}Hz, off by ${octaveDist.toFixed(2)} oct (need < ${tol.toFixed(2)})`, 'bad');
             }
 
             saveElo();
