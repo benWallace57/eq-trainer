@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mix Trainer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0d1117;
+            color: #e6e6e6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            min-height: 100vh;
+        }
+
+        nav {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 15px;
+        }
+        nav a { color: #00d4ff; text-decoration: none; font-size: 14px; }
+        nav a:hover { text-decoration: underline; }
+        nav a.active { color: #e6e6e6; pointer-events: none; }
+
+        h1 { font-size: 22px; margin-bottom: 8px; }
+
+        .challenge-bar {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 12px;
+        }
+        .challenge-bar select {
+            background: #161b22;
+            color: #e6e6e6;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .challenge-desc {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #aab;
+            line-height: 1.4;
+        }
+        .challenge-hint {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #667;
+            font-style: italic;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 1000px;
+            justify-content: center;
+        }
+        button {
+            background: #161b22;
+            color: #e6e6e6;
+            border: 1px solid #333;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        button:active, button.active { background: #1f6feb; border-color: #58a6ff; }
+        button.submit-btn { background: #0f3460; border-color: #00d4ff; }
+        button.reset-btn { border-color: #f87171; }
+
+        .stems-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 10px 0;
+        }
+
+        .stem-row {
+            display: grid;
+            grid-template-columns: 130px auto;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #161b22;
+            border-radius: 8px;
+            border: 1px solid #222;
+        }
+        .stem-row.selected { border-color: #58a6ff; }
+
+        .stem-label {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .stem-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stem-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            min-width: 24px;
+            text-align: center;
+        }
+        .stem-btn.solo-active { background: #b45309; border-color: #f59e0b; }
+        .stem-btn.mute-active { background: #991b1b; border-color: #f87171; }
+
+        .vol-slider {
+            width: 80px;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+        .vol-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #58a6ff;
+            cursor: pointer;
+        }
+
+        .eq-bands {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .eq-band {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: #889;
+        }
+        .eq-band label { margin-bottom: 2px; }
+        .eq-knob {
+            width: 50px;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+        .eq-knob::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            cursor: pointer;
+        }
+        .eq-val { font-size: 9px; color: #667; margin-top: 1px; }
+
+        .mid-freq {
+            width: 50px;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #222;
+            border-radius: 2px;
+            outline: none;
+        }
+        .mid-freq::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f59e0b;
+            cursor: pointer;
+        }
+
+        .feedback {
+            font-size: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 8px 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+            width: 100%;
+            max-width: 1000px;
+        }
+        .feedback.show { opacity: 1; }
+        .feedback.good { background: #0d3320; color: #4ade80; }
+        .feedback.ok { background: #332b0d; color: #fbbf24; }
+        .feedback.bad { background: #3d1515; color: #f87171; }
+
+        .score-bar {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0;
+            width: 100%;
+            max-width: 1000px;
+        }
+        .stat {
+            background: #161b22;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">EQ Trainer</a>
+        <a href="identify.html">Frequency Identify</a>
+        <a href="mix-trainer.html" class="active">Mix Trainer</a>
+    </nav>
+
+    <h1>Mix Trainer</h1>
+
+    <div class="score-bar">
+        <div class="stat">Score: <span id="score">0</span></div>
+        <div class="stat">Challenge: <span id="challengeNum">0</span>/6</div>
+    </div>
+
+    <div class="challenge-bar">
+        <select id="challengeSelect"></select>
+        <div class="challenge-desc" id="challengeDesc"></div>
+        <div class="challenge-hint" id="challengeHint"></div>
+    </div>
+
+    <div class="controls">
+        <button id="playBtn" class="submit-btn">Play</button>
+        <button id="bypassBtn">Bypass EQ</button>
+        <button id="refBtn">Reference</button>
+        <button id="submitBtn" class="submit-btn">Submit</button>
+        <button id="resetBtn" class="reset-btn">Reset EQ</button>
+    </div>
+
+    <div class="stems-container" id="stemsContainer"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <script>
+    (function() {
+        // --- Challenges ---
+        const challenges = [
+            {
+                id: 'boxy-vocals',
+                title: '1. Boxy Vocals',
+                description: 'The lead vocals sound boxy and congested. Remove the boxiness while keeping warmth and presence.',
+                hint: 'Boxiness lives around 300-500Hz. A gentle cut there can open things up.',
+                stems: ['lead-vocals'],
+                targets: [
+                    { stem: 'lead-vocals', band: 'low', idealGain: -4, freqCenter: 350, freqRange: [250, 600], tolerance: 4 }
+                ]
+            },
+            {
+                id: 'guitar-masks-vocals',
+                title: '2. Guitar Masking Vocals',
+                description: 'The guitar and vocals are fighting for the same space. Make the vocals cut through without killing the guitar.',
+                hint: 'Try cutting the guitar in the vocal presence range (2-4kHz) rather than boosting the vocals.',
+                stems: ['lead-vocals', 'guitar-main'],
+                targets: [
+                    { stem: 'guitar-main', band: 'mid', idealGain: -4, freqCenter: 2500, freqRange: [1500, 4000], tolerance: 4 }
+                ]
+            },
+            {
+                id: 'muddy-piano-tom',
+                title: '3. Muddy Low-Mids',
+                description: 'The piano and floor tom are making the low-mids muddy and undefined. Clean it up so each has its own space.',
+                hint: 'The mud usually sits around 200-400Hz. Cut one or both in that area.',
+                stems: ['piano', 'floor-tom'],
+                targets: [
+                    { stem: 'piano', band: 'low', idealGain: -4, freqCenter: 300, freqRange: [180, 450], tolerance: 4 },
+                    { stem: 'floor-tom', band: 'low', idealGain: -3, freqCenter: 250, freqRange: [150, 400], tolerance: 4 }
+                ]
+            },
+            {
+                id: 'competing-guitars',
+                title: '4. Competing Guitars',
+                description: 'Two guitars playing together sound like a wall of mush. Separate them so you can hear both clearly.',
+                hint: 'Give each guitar its own frequency pocket — cut one where you boost the other.',
+                stems: ['guitar-main', 'guitar-overdub'],
+                targets: [
+                    { stem: 'guitar-main', band: 'mid', idealGain: -3, freqCenter: 800, freqRange: [500, 1200], tolerance: 4 },
+                    { stem: 'guitar-overdub', band: 'mid', idealGain: -3, freqCenter: 2500, freqRange: [1800, 4000], tolerance: 4 }
+                ]
+            },
+            {
+                id: 'vocal-clarity',
+                title: '5. Vocal Clarity',
+                description: 'Lead and backing vocals are blending into each other. Give each its own space so both are intelligible.',
+                hint: 'The lead needs presence (2-5kHz). Try cutting the backing vocals there, or boosting the lead\'s air.',
+                stems: ['lead-vocals', 'backing-vocals'],
+                targets: [
+                    { stem: 'backing-vocals', band: 'mid', idealGain: -3, freqCenter: 3000, freqRange: [2000, 5000], tolerance: 4 },
+                    { stem: 'lead-vocals', band: 'high', idealGain: 2, freqCenter: 5000, freqRange: [3000, 8000], tolerance: 4 }
+                ]
+            },
+            {
+                id: 'full-mix-mud',
+                title: '6. Full Mix Cleanup',
+                description: 'Piano, guitar, and melodica together sound thick and undefined. Clean up the low-mids across all three so the mix breathes.',
+                hint: 'Each instrument contributes mud in slightly different spots between 200-600Hz. Cut each where it\'s least important.',
+                stems: ['piano', 'guitar-main', 'melodica'],
+                targets: [
+                    { stem: 'piano', band: 'low', idealGain: -3, freqCenter: 300, freqRange: [200, 450], tolerance: 4 },
+                    { stem: 'guitar-main', band: 'low', idealGain: -3, freqCenter: 400, freqRange: [250, 550], tolerance: 4 },
+                    { stem: 'melodica', band: 'low', idealGain: -3, freqCenter: 350, freqRange: [200, 500], tolerance: 4 }
+                ]
+            }
+        ];
+
+        // --- State ---
+        let audioCtx = null;
+        let masterGain = null;
+        let stemNodes = {};  // { name: { source, buffer, eqLow, eqMid, eqHigh, gain, analyser } }
+        let referenceNode = null;
+        let referenceBuffer = null;
+        let isPlaying = false;
+        let isBypassed = false;
+        let isReference = false;
+        let currentChallenge = challenges[0];
+        let score = 0;
+        let completedChallenges = new Set();
+
+        // --- DOM ---
+        const challengeSelect = document.getElementById('challengeSelect');
+        const challengeDesc = document.getElementById('challengeDesc');
+        const challengeHint = document.getElementById('challengeHint');
+        const stemsContainer = document.getElementById('stemsContainer');
+        const playBtn = document.getElementById('playBtn');
+        const bypassBtn = document.getElementById('bypassBtn');
+        const refBtn = document.getElementById('refBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const feedbackEl = document.getElementById('feedback');
+        const scoreEl = document.getElementById('score');
+        const challengeNumEl = document.getElementById('challengeNum');
+
+        // --- Init ---
+        challenges.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.title;
+            challengeSelect.appendChild(opt);
+        });
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.6;
+            masterGain.connect(audioCtx.destination);
+        }
+
+        async function loadStem(name) {
+            const resp = await fetch(`stems/${name}.mp3`);
+            const buf = await resp.arrayBuffer();
+            return await audioCtx.decodeAudioData(buf);
+        }
+
+        function createStemChain(name, buffer) {
+            const eqLow = audioCtx.createBiquadFilter();
+            eqLow.type = 'lowShelf';
+            eqLow.frequency.value = 200;
+            eqLow.gain.value = 0;
+
+            const eqMid = audioCtx.createBiquadFilter();
+            eqMid.type = 'peaking';
+            eqMid.frequency.value = 1000;
+            eqMid.Q.value = 1.5;
+            eqMid.gain.value = 0;
+
+            const eqHigh = audioCtx.createBiquadFilter();
+            eqHigh.type = 'highShelf';
+            eqHigh.frequency.value = 4000;
+            eqHigh.gain.value = 0;
+
+            const gain = audioCtx.createGain();
+            gain.gain.value = 1.0;
+
+            return { buffer, eqLow, eqMid, eqHigh, gain, source: null, muted: false, soloed: false };
+        }
+
+        function connectStem(node) {
+            if (node.source) {
+                try { node.source.stop(); } catch(e) {}
+                try { node.source.disconnect(); } catch(e) {}
+            }
+            node.source = audioCtx.createBufferSource();
+            node.source.buffer = node.buffer;
+            node.source.loop = true;
+
+            if (isBypassed) {
+                node.source.connect(node.gain);
+            } else {
+                node.source.connect(node.eqLow);
+                node.eqLow.connect(node.eqMid);
+                node.eqMid.connect(node.eqHigh);
+                node.eqHigh.connect(node.gain);
+            }
+            node.gain.connect(masterGain);
+        }
+
+        function startPlayback() {
+            const startTime = audioCtx.currentTime + 0.05;
+            Object.values(stemNodes).forEach(node => {
+                connectStem(node);
+                node.source.start(startTime);
+            });
+            updateMutesSolos();
+        }
+
+        function stopPlayback() {
+            Object.values(stemNodes).forEach(node => {
+                if (node.source) {
+                    try { node.source.stop(); } catch(e) {}
+                    try { node.source.disconnect(); } catch(e) {}
+                    node.source = null;
+                }
+            });
+            if (referenceNode) {
+                try { referenceNode.stop(); } catch(e) {}
+                referenceNode = null;
+            }
+        }
+
+        function reconnectAll() {
+            if (!isPlaying) return;
+            const time = audioCtx.currentTime;
+            Object.values(stemNodes).forEach(node => {
+                if (!node.source) return;
+                try { node.source.disconnect(); } catch(e) {}
+                if (isBypassed) {
+                    node.source.connect(node.gain);
+                } else {
+                    node.source.connect(node.eqLow);
+                    node.eqLow.connect(node.eqMid);
+                    node.eqMid.connect(node.eqHigh);
+                    node.eqHigh.connect(node.gain);
+                }
+                node.gain.connect(masterGain);
+            });
+        }
+
+        function updateMutesSolos() {
+            const anySoloed = Object.values(stemNodes).some(n => n.soloed);
+            Object.entries(stemNodes).forEach(([name, node]) => {
+                if (anySoloed) {
+                    node.gain.gain.value = node.soloed ? 1.0 : 0;
+                } else {
+                    node.gain.gain.value = node.muted ? 0 : 1.0;
+                }
+            });
+        }
+
+        // --- Load challenge ---
+        async function loadChallenge(challenge) {
+            currentChallenge = challenge;
+            challengeDesc.textContent = challenge.description;
+            challengeHint.textContent = challenge.hint;
+
+            if (isPlaying) {
+                stopPlayback();
+                isPlaying = false;
+                playBtn.textContent = 'Play';
+                playBtn.classList.remove('active');
+            }
+
+            isReference = false;
+            isBypassed = false;
+            bypassBtn.classList.remove('active');
+            refBtn.classList.remove('active');
+
+            initAudio();
+
+            stemNodes = {};
+            for (const name of challenge.stems) {
+                const buffer = await loadStem(name);
+                stemNodes[name] = createStemChain(name, buffer);
+            }
+
+            if (!referenceBuffer) {
+                referenceBuffer = await loadStem('reference-mix');
+            }
+
+            buildStemUI();
+            hideFeedback();
+        }
+
+        // --- UI ---
+        function buildStemUI() {
+            stemsContainer.innerHTML = '';
+            Object.entries(stemNodes).forEach(([name, node]) => {
+                const row = document.createElement('div');
+                row.className = 'stem-row';
+                row.dataset.stem = name;
+
+                const label = document.createElement('div');
+                label.className = 'stem-label';
+                label.textContent = name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+                const controls = document.createElement('div');
+                controls.className = 'stem-controls';
+
+                // Solo button
+                const soloBtn = document.createElement('button');
+                soloBtn.className = 'stem-btn';
+                soloBtn.textContent = 'S';
+                soloBtn.title = 'Solo';
+                soloBtn.addEventListener('click', () => {
+                    node.soloed = !node.soloed;
+                    soloBtn.classList.toggle('solo-active', node.soloed);
+                    updateMutesSolos();
+                });
+
+                // Mute button
+                const muteBtn = document.createElement('button');
+                muteBtn.className = 'stem-btn';
+                muteBtn.textContent = 'M';
+                muteBtn.title = 'Mute';
+                muteBtn.addEventListener('click', () => {
+                    node.muted = !node.muted;
+                    muteBtn.classList.toggle('mute-active', node.muted);
+                    updateMutesSolos();
+                });
+
+                // EQ bands
+                const eqBands = document.createElement('div');
+                eqBands.className = 'eq-bands';
+
+                // Low shelf
+                eqBands.appendChild(createEQBand('Lo', node.eqLow, name));
+                // Mid freq control
+                eqBands.appendChild(createMidSection(node.eqMid, name));
+                // High shelf
+                eqBands.appendChild(createEQBand('Hi', node.eqHigh, name));
+
+                controls.appendChild(soloBtn);
+                controls.appendChild(muteBtn);
+                controls.appendChild(eqBands);
+
+                row.appendChild(label);
+                row.appendChild(controls);
+                stemsContainer.appendChild(row);
+            });
+        }
+
+        function createEQBand(label, filter, stemName) {
+            const band = document.createElement('div');
+            band.className = 'eq-band';
+
+            const lbl = document.createElement('label');
+            lbl.textContent = label;
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.className = 'eq-knob';
+            slider.min = -12;
+            slider.max = 12;
+            slider.step = 0.5;
+            slider.value = 0;
+
+            const val = document.createElement('div');
+            val.className = 'eq-val';
+            val.textContent = '0dB';
+
+            slider.addEventListener('input', () => {
+                const v = parseFloat(slider.value);
+                filter.gain.value = v;
+                val.textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + 'dB';
+            });
+
+            band.appendChild(lbl);
+            band.appendChild(slider);
+            band.appendChild(val);
+            return band;
+        }
+
+        function createMidSection(filter, stemName) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'eq-band';
+            wrapper.style.gap = '2px';
+
+            const lbl = document.createElement('label');
+            lbl.textContent = 'Mid';
+
+            // Frequency slider
+            const freqSlider = document.createElement('input');
+            freqSlider.type = 'range';
+            freqSlider.className = 'mid-freq';
+            freqSlider.min = Math.log10(200);
+            freqSlider.max = Math.log10(8000);
+            freqSlider.step = 0.01;
+            freqSlider.value = Math.log10(1000);
+
+            const freqVal = document.createElement('div');
+            freqVal.className = 'eq-val';
+            freqVal.textContent = '1.0k';
+
+            freqSlider.addEventListener('input', () => {
+                const freq = Math.pow(10, parseFloat(freqSlider.value));
+                filter.frequency.value = freq;
+                freqVal.textContent = freq >= 1000 ? (freq / 1000).toFixed(1) + 'k' : Math.round(freq) + '';
+            });
+
+            // Gain slider
+            const gainSlider = document.createElement('input');
+            gainSlider.type = 'range';
+            gainSlider.className = 'eq-knob';
+            gainSlider.min = -12;
+            gainSlider.max = 12;
+            gainSlider.step = 0.5;
+            gainSlider.value = 0;
+
+            const gainVal = document.createElement('div');
+            gainVal.className = 'eq-val';
+            gainVal.textContent = '0dB';
+
+            gainSlider.addEventListener('input', () => {
+                const v = parseFloat(gainSlider.value);
+                filter.gain.value = v;
+                gainVal.textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + 'dB';
+            });
+
+            wrapper.appendChild(lbl);
+            wrapper.appendChild(freqSlider);
+            wrapper.appendChild(freqVal);
+            wrapper.appendChild(gainSlider);
+            wrapper.appendChild(gainVal);
+            return wrapper;
+        }
+
+        function resetAllEQ() {
+            Object.values(stemNodes).forEach(node => {
+                node.eqLow.gain.value = 0;
+                node.eqMid.gain.value = 0;
+                node.eqMid.frequency.value = 1000;
+                node.eqHigh.gain.value = 0;
+                node.muted = false;
+                node.soloed = false;
+            });
+            buildStemUI();
+            if (isPlaying) reconnectAll();
+        }
+
+        // --- Scoring ---
+        function scoreChallenge() {
+            let totalScore = 0;
+            let maxScore = currentChallenge.targets.length * 100;
+            const details = [];
+
+            currentChallenge.targets.forEach(target => {
+                const node = stemNodes[target.stem];
+                if (!node) return;
+
+                let filter, userGain, userFreq;
+                if (target.band === 'low') {
+                    filter = node.eqLow;
+                    userGain = filter.gain.value;
+                    userFreq = filter.frequency.value;
+                } else if (target.band === 'mid') {
+                    filter = node.eqMid;
+                    userGain = filter.gain.value;
+                    userFreq = filter.frequency.value;
+                } else {
+                    filter = node.eqHigh;
+                    userGain = filter.gain.value;
+                    userFreq = filter.frequency.value;
+                }
+
+                // Score gain direction and magnitude
+                let gainScore = 0;
+                const idealGain = target.idealGain;
+                const gainDiff = Math.abs(userGain - idealGain);
+                const sameDirection = (userGain < 0 && idealGain < 0) || (userGain > 0 && idealGain > 0);
+
+                if (sameDirection && gainDiff <= target.tolerance) {
+                    gainScore = Math.max(0, 1 - gainDiff / target.tolerance);
+                } else if (sameDirection) {
+                    gainScore = 0.2;
+                }
+
+                // Score frequency (for mid band)
+                let freqScore = 1.0;
+                if (target.band === 'mid' && target.freqRange) {
+                    if (userFreq >= target.freqRange[0] && userFreq <= target.freqRange[1]) {
+                        freqScore = 1.0;
+                    } else {
+                        const octaveDist = Math.abs(Math.log2(userFreq / target.freqCenter));
+                        freqScore = Math.max(0, 1 - octaveDist / 2);
+                    }
+                }
+
+                // Did they at least do something?
+                const didSomething = Math.abs(userGain) > 0.5;
+                const stemScore = didSomething ? Math.round(gainScore * freqScore * 100) : 0;
+                totalScore += stemScore;
+
+                const stemLabel = target.stem.replace(/-/g, ' ');
+                details.push(`${stemLabel} ${target.band}: ${stemScore}/100`);
+            });
+
+            const pct = Math.round((totalScore / maxScore) * 100);
+            return { pct, totalScore, maxScore, details };
+        }
+
+        // --- Event listeners ---
+        playBtn.addEventListener('click', () => {
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (isReference) {
+                isReference = false;
+                refBtn.classList.remove('active');
+                if (referenceNode) {
+                    try { referenceNode.stop(); } catch(e) {}
+                    referenceNode = null;
+                }
+            }
+
+            if (isPlaying) {
+                stopPlayback();
+                isPlaying = false;
+                playBtn.textContent = 'Play';
+                playBtn.classList.remove('active');
+            } else {
+                startPlayback();
+                isPlaying = true;
+                playBtn.textContent = 'Stop';
+                playBtn.classList.add('active');
+            }
+        });
+
+        bypassBtn.addEventListener('click', () => {
+            isBypassed = !isBypassed;
+            bypassBtn.classList.toggle('active', isBypassed);
+            if (isPlaying) {
+                stopPlayback();
+                startPlayback();
+            }
+        });
+
+        refBtn.addEventListener('click', () => {
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (isReference) {
+                if (referenceNode) {
+                    try { referenceNode.stop(); } catch(e) {}
+                    referenceNode = null;
+                }
+                isReference = false;
+                refBtn.classList.remove('active');
+                if (isPlaying) {
+                    startPlayback();
+                }
+            } else {
+                if (isPlaying) {
+                    stopPlayback();
+                    isPlaying = false;
+                    playBtn.textContent = 'Play';
+                    playBtn.classList.remove('active');
+                }
+                isReference = true;
+                refBtn.classList.add('active');
+                referenceNode = audioCtx.createBufferSource();
+                referenceNode.buffer = referenceBuffer;
+                referenceNode.loop = true;
+                referenceNode.connect(masterGain);
+                referenceNode.start();
+            }
+        });
+
+        submitBtn.addEventListener('click', () => {
+            const result = scoreChallenge();
+            score += result.pct;
+            completedChallenges.add(currentChallenge.id);
+            scoreEl.textContent = score;
+            challengeNumEl.textContent = completedChallenges.size;
+
+            const details = result.details.join(' | ');
+            if (result.pct >= 70) {
+                showFeedback(`Excellent! ${result.pct}% — ${details}`, 'good');
+            } else if (result.pct >= 40) {
+                showFeedback(`Not bad! ${result.pct}% — ${details}`, 'ok');
+            } else {
+                showFeedback(`Keep trying! ${result.pct}% — ${details}`, 'bad');
+            }
+        });
+
+        resetBtn.addEventListener('click', resetAllEQ);
+
+        challengeSelect.addEventListener('change', () => {
+            const c = challenges.find(ch => ch.id === challengeSelect.value);
+            if (c) loadChallenge(c);
+        });
+
+        function showFeedback(msg, type) {
+            feedbackEl.textContent = msg;
+            feedbackEl.className = 'feedback show ' + type;
+        }
+        function hideFeedback() {
+            feedbackEl.className = 'feedback';
+        }
+
+        // --- Boot ---
+        loadChallenge(challenges[0]);
+    })();
+    </script>
+</body>
+</html>
