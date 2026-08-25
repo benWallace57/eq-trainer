@@ -350,6 +350,8 @@
     <div class="transport">
         <button id="playBtn" class="play-btn">Play</button>
         <button id="refBtn">Reference</button>
+        <button id="snapBtn" style="border-color:#4ade80;color:#4ade80">AI Mix</button>
+        <button id="resetBtn" style="border-color:#f97316;color:#f97316">Reset</button>
     </div>
 
     <div class="mixer" id="mixer"></div>
@@ -454,6 +456,16 @@
             ls: '#facc15',
             band: '#4ade80',
             hs: '#a78bfa',
+        };
+
+        const AI_MIX_PRESET = {
+            'lead-vocals': { eq: { hpFreq: 120, hpQ: 0.7, lsFreq: 200, lsGain: 0, bandFreq: 3000, bandGain: 8.6, bandQ: 0.5, hsFreq: 8000, hsGain: 12 }, vol: 1.97, send: 0.15 },
+            'backing-vocals': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 200, lsGain: -1.8, bandFreq: 2000, bandGain: 0, bandQ: 1.5, hsFreq: 6000, hsGain: 11.6 }, vol: 1.72, send: 0.15 },
+            'piano': { eq: { hpFreq: 100, hpQ: 0.7, lsFreq: 300, lsGain: -0.9, bandFreq: 500, bandGain: -1.5, bandQ: 3, hsFreq: 5000, hsGain: 2.1 }, vol: 1.47, send: 0.05 },
+            'guitar-main': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 250, lsGain: -0.4, bandFreq: 2500, bandGain: 0, bandQ: 2, hsFreq: 5000, hsGain: 12 }, vol: 2.0, send: 0.05 },
+            'guitar-overdub': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2.9, bandFreq: 3000, bandGain: 0, bandQ: 2, hsFreq: 6000, hsGain: 4.1 }, vol: 0.5, send: 0.05 },
+            'overhead': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2, bandFreq: 4000, bandGain: 0, bandQ: 2, hsFreq: 8000, hsGain: 4.1 }, vol: 2.0, send: 0.05 },
+            'floor-tom': { eq: { hpFreq: 49, hpQ: 0.7, lsFreq: 250, lsGain: 1.9, bandFreq: 350, bandGain: -3.3, bandQ: 4.4, hsFreq: 5000, hsGain: 0 }, vol: 1.95, send: 0.05 },
         };
 
         let audioCtx = null;
@@ -724,6 +736,7 @@
             CHANNELS.forEach(ch => {
                 const col = document.createElement('div');
                 col.className = 'channel';
+                col.dataset.id = ch.id;
 
                 const name = document.createElement('div');
                 name.className = 'channel-name';
@@ -1193,6 +1206,67 @@
             } else {
                 startReference();
             }
+        });
+
+        // --- Preset snap/reset ---
+        const snapBtn = document.getElementById('snapBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function applyPreset(preset) {
+            if (!Object.keys(channels).length) return;
+            for (const [id, settings] of Object.entries(preset)) {
+                const ch = channels[id];
+                if (!ch) continue;
+                Object.assign(ch.eq, settings.eq);
+                ch.vol = settings.vol;
+                ch.send = settings.send;
+                ch.sendGain.gain.value = settings.send;
+                applyEQ(id);
+            }
+            updateGains();
+            rebuildFaders();
+            updateEQButtons();
+        }
+
+        function resetMixer() {
+            if (!Object.keys(channels).length) return;
+            for (const id of Object.keys(channels)) {
+                const ch = channels[id];
+                ch.eq = defaultEQ();
+                ch.vol = 1.0;
+                ch.send = 0;
+                ch.sendGain.gain.value = 0;
+                applyEQ(id);
+            }
+            updateGains();
+            rebuildFaders();
+            updateEQButtons();
+        }
+
+        function rebuildFaders() {
+            document.querySelectorAll('.channel').forEach(col => {
+                const id = col.dataset.id;
+                const ch = channels[id];
+                if (!ch) return;
+                const pct = gainToPct(ch.vol);
+                const fill = col.querySelector('.fader-fill');
+                const thumb = col.querySelector('.fader-thumb');
+                const val = col.querySelector('.fader-val');
+                const sendSlider = col.querySelector('.send-row input');
+                if (fill) fill.style.height = (pct * 100) + '%';
+                if (thumb) thumb.style.bottom = (pct * 100) + '%';
+                if (val) val.textContent = ch.vol < 0.001 ? '-∞dB' : gainToDb(ch.vol) + 'dB';
+                if (sendSlider) sendSlider.value = ch.send;
+            });
+        }
+
+        snapBtn.addEventListener('click', async () => {
+            await ensureLoaded();
+            applyPreset(AI_MIX_PRESET);
+        });
+        resetBtn.addEventListener('click', async () => {
+            await ensureLoaded();
+            resetMixer();
         });
 
         // --- Reverb master controls ---
