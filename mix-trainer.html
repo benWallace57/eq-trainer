@@ -19,7 +19,7 @@
 
         nav {
             width: 100%;
-            max-width: 1000px;
+            max-width: 1200px;
             margin-bottom: 10px;
             display: flex;
             gap: 15px;
@@ -28,111 +28,222 @@
         nav a:hover { text-decoration: underline; }
         nav a.active { color: #e6e6e6; pointer-events: none; }
 
-        h1 { font-size: 22px; margin-bottom: 8px; }
+        h1 { font-size: 22px; margin-bottom: 12px; }
 
-        .challenge-bar {
-            width: 100%;
-            max-width: 1000px;
-            margin-bottom: 12px;
-        }
-        .challenge-bar select {
-            background: #161b22;
-            color: #e6e6e6;
-            border: 1px solid #333;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            width: 100%;
-            max-width: 400px;
-        }
-        .challenge-desc {
-            margin-top: 8px;
-            font-size: 14px;
-            color: #aab;
-            line-height: 1.4;
-        }
-        .challenge-hint {
-            margin-top: 4px;
-            font-size: 12px;
-            color: #667;
-            font-style: italic;
-        }
-
-        .controls {
+        .transport {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 10px 0;
-            width: 100%;
-            max-width: 1000px;
-            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         button {
             background: #161b22;
             color: #e6e6e6;
             border: 1px solid #333;
-            padding: 8px 14px;
+            padding: 10px 18px;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
             transition: background 0.15s;
         }
         button:active, button.active { background: #1f6feb; border-color: #58a6ff; }
-        button.submit-btn { background: #0f3460; border-color: #00d4ff; }
-        button.reset-btn { border-color: #f87171; }
+        button.play-btn { background: #0f3460; border-color: #00d4ff; font-size: 16px; padding: 10px 24px; }
 
-        .stems-container {
-            width: 100%;
-            max-width: 1000px;
-            margin: 10px 0;
-        }
-
-        .stem-row {
-            display: grid;
-            grid-template-columns: 130px auto;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            margin-bottom: 6px;
-            background: #161b22;
-            border-radius: 8px;
-            border: 1px solid #222;
-        }
-        .stem-row.selected { border-color: #58a6ff; }
-
-        .stem-label {
-            font-size: 13px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .stem-controls {
+        .mixer {
             display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
+            gap: 4px;
+            width: 100%;
+            max-width: 1200px;
+            overflow-x: auto;
+            padding-bottom: 10px;
         }
 
-        .stem-btn {
+        .channel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #161b22;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 10px 6px;
+            min-width: 100px;
+            flex: 1;
+            gap: 6px;
+        }
+
+        .channel-name {
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .eq-btn {
+            font-size: 10px;
+            padding: 5px 8px;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .eq-btn.has-eq { border-color: #4ade80; color: #4ade80; }
+
+        .channel-btns {
+            display: flex;
+            gap: 4px;
+        }
+        .ch-btn {
             padding: 4px 8px;
             font-size: 11px;
             border-radius: 4px;
-            min-width: 24px;
-            text-align: center;
         }
-        .stem-btn.solo-active { background: #b45309; border-color: #f59e0b; }
-        .stem-btn.mute-active { background: #991b1b; border-color: #f87171; }
+        .ch-btn.solo-on { background: #b45309; border-color: #f59e0b; color: #fff; }
+        .ch-btn.mute-on { background: #991b1b; border-color: #f87171; color: #fff; }
 
-        .vol-slider {
-            width: 80px;
-            height: 4px;
+        .fader-track {
+            width: 14px;
+            height: 160px;
+            background: #222;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid #333;
+        }
+        .fader-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #1a4a7a;
+            border-radius: 0 0 3px 3px;
+        }
+        .fader-unity {
+            position: absolute;
+            left: -3px;
+            right: -3px;
+            height: 1px;
+            background: #58a6ff;
+            bottom: 75%;
+        }
+        .fader-thumb {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            width: 28px;
+            height: 12px;
+            background: #ccc;
+            border-radius: 3px;
+            cursor: grab;
+            border: 1px solid #888;
+        }
+        .fader-val {
+            font-size: 10px;
+            color: #889;
+        }
+        .channel-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* --- EQ Overlay --- */
+        .eq-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.88);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .eq-overlay.open { display: flex; }
+
+        .eq-panel {
+            background: #0d1b2a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            width: 92%;
+            max-width: 800px;
+            position: relative;
+        }
+        .eq-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #889;
+            background: none;
+            border: none;
+            padding: 5px 10px;
+        }
+        .eq-close:hover { color: #fff; }
+        .eq-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .eq-canvas-wrap {
+            width: 100%;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .eq-canvas-wrap canvas {
+            width: 100%;
+            height: 220px;
+            background: #0a1220;
+            border-radius: 6px;
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .eq-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .eq-section {
+            background: #0a1220;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .eq-section h3 {
+            font-size: 12px;
+            color: #889;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .eq-section h3 .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .eq-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+        .eq-row label {
+            font-size: 11px;
+            width: 30px;
+            color: #aab;
+        }
+        .eq-row input[type="range"] {
+            flex: 1;
+            height: 3px;
             -webkit-appearance: none;
             appearance: none;
             background: #333;
             border-radius: 2px;
             outline: none;
         }
-        .vol-slider::-webkit-slider-thumb {
+        .eq-row input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 12px;
             height: 12px;
@@ -140,85 +251,16 @@
             background: #58a6ff;
             cursor: pointer;
         }
-
-        .eq-bands {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-        .eq-band {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .eq-row .eq-readout {
             font-size: 10px;
-            color: #889;
-        }
-        .eq-band label { margin-bottom: 2px; }
-        .eq-knob {
-            width: 50px;
-            height: 4px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #333;
-            border-radius: 2px;
-            outline: none;
-        }
-        .eq-knob::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #4ade80;
-            cursor: pointer;
-        }
-        .eq-val { font-size: 9px; color: #667; margin-top: 1px; }
-
-        .mid-freq {
-            width: 50px;
-            height: 4px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #222;
-            border-radius: 2px;
-            outline: none;
-        }
-        .mid-freq::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #f59e0b;
-            cursor: pointer;
+            color: #667;
+            width: 45px;
+            text-align: right;
         }
 
-        .feedback {
-            font-size: 15px;
-            padding: 10px;
-            border-radius: 6px;
-            margin: 8px 0;
-            opacity: 0;
-            transition: opacity 0.3s;
-            text-align: center;
-            width: 100%;
-            max-width: 1000px;
-        }
-        .feedback.show { opacity: 1; }
-        .feedback.good { background: #0d3320; color: #4ade80; }
-        .feedback.ok { background: #332b0d; color: #fbbf24; }
-        .feedback.bad { background: #3d1515; color: #f87171; }
-
-        .score-bar {
-            display: flex;
-            gap: 12px;
-            margin: 8px 0;
-            width: 100%;
-            max-width: 1000px;
-        }
-        .stat {
-            background: #161b22;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 13px;
+        @media (max-width: 600px) {
+            .eq-controls { grid-template-columns: 1fr; }
+            .channel { min-width: 75px; padding: 8px 4px; }
         }
     </style>
 </head>
@@ -231,596 +273,780 @@
 
     <h1>Mix Trainer</h1>
 
-    <div class="score-bar">
-        <div class="stat">Score: <span id="score">0</span></div>
-        <div class="stat">Challenge: <span id="challengeNum">0</span>/6</div>
-    </div>
-
-    <div class="challenge-bar">
-        <select id="challengeSelect"></select>
-        <div class="challenge-desc" id="challengeDesc"></div>
-        <div class="challenge-hint" id="challengeHint"></div>
-    </div>
-
-    <div class="controls">
-        <button id="playBtn" class="submit-btn">Play</button>
-        <button id="bypassBtn">Bypass EQ</button>
+    <div class="transport">
+        <button id="playBtn" class="play-btn">Play</button>
         <button id="refBtn">Reference</button>
-        <button id="submitBtn" class="submit-btn">Submit</button>
-        <button id="resetBtn" class="reset-btn">Reset EQ</button>
     </div>
 
-    <div class="stems-container" id="stemsContainer"></div>
+    <div class="mixer" id="mixer"></div>
 
-    <div class="feedback" id="feedback"></div>
+    <div class="eq-overlay" id="eqOverlay">
+        <div class="eq-panel">
+            <button class="eq-close" id="eqClose">&times;</button>
+            <div class="eq-title" id="eqTitle">EQ</div>
+            <div class="eq-canvas-wrap">
+                <canvas id="eqCanvas"></canvas>
+            </div>
+            <div class="eq-controls">
+                <div class="eq-section">
+                    <h3><span class="dot" style="background:#f97316"></span>High-Pass</h3>
+                    <div class="eq-row">
+                        <label>Freq</label>
+                        <input type="range" id="hpFreq" min="1.3" max="2.9" step="0.01" value="1.3">
+                        <span class="eq-readout" id="hpFreqVal">20Hz</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Q</label>
+                        <input type="range" id="hpQ" min="-1.0" max="1.5" step="0.05" value="-0.5">
+                        <span class="eq-readout" id="hpQVal">0.7</span>
+                    </div>
+                </div>
+                <div class="eq-section">
+                    <h3><span class="dot" style="background:#facc15"></span>Low Shelf</h3>
+                    <div class="eq-row">
+                        <label>Freq</label>
+                        <input type="range" id="lsFreq" min="1.7" max="2.9" step="0.01" value="2.3">
+                        <span class="eq-readout" id="lsFreqVal">200Hz</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Gain</label>
+                        <input type="range" id="lsGain" min="-12" max="12" step="0.5" value="0">
+                        <span class="eq-readout" id="lsGainVal">0dB</span>
+                    </div>
+                </div>
+                <div class="eq-section">
+                    <h3><span class="dot" style="background:#4ade80"></span>Band</h3>
+                    <div class="eq-row">
+                        <label>Freq</label>
+                        <input type="range" id="bandFreq" min="2.0" max="4.0" step="0.01" value="3.0">
+                        <span class="eq-readout" id="bandFreqVal">1.0k</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Gain</label>
+                        <input type="range" id="bandGain" min="-12" max="12" step="0.5" value="0">
+                        <span class="eq-readout" id="bandGainVal">0dB</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Q</label>
+                        <input type="range" id="bandQ" min="-1.0" max="2.5" step="0.05" value="0.3">
+                        <span class="eq-readout" id="bandQVal">1.2</span>
+                    </div>
+                </div>
+                <div class="eq-section">
+                    <h3><span class="dot" style="background:#a78bfa"></span>High Shelf</h3>
+                    <div class="eq-row">
+                        <label>Freq</label>
+                        <input type="range" id="hsFreq" min="3.3" max="4.2" step="0.01" value="3.7">
+                        <span class="eq-readout" id="hsFreqVal">5.0k</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Gain</label>
+                        <input type="range" id="hsGain" min="-12" max="12" step="0.5" value="0">
+                        <span class="eq-readout" id="hsGainVal">0dB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
     (function() {
-        // --- Challenges ---
-        const challenges = [
-            {
-                id: 'boxy-vocals',
-                title: '1. Boxy Vocals',
-                description: 'The lead vocals sound boxy and congested. Remove the boxiness while keeping warmth and presence.',
-                hint: 'Boxiness lives around 300-500Hz. A gentle cut there can open things up.',
-                stems: ['lead-vocals'],
-                targets: [
-                    { stem: 'lead-vocals', band: 'low', idealGain: -4, freqCenter: 350, freqRange: [250, 600], tolerance: 4 }
-                ]
-            },
-            {
-                id: 'guitar-masks-vocals',
-                title: '2. Guitar Masking Vocals',
-                description: 'The guitar and vocals are fighting for the same space. Make the vocals cut through without killing the guitar.',
-                hint: 'Try cutting the guitar in the vocal presence range (2-4kHz) rather than boosting the vocals.',
-                stems: ['lead-vocals', 'guitar-main'],
-                targets: [
-                    { stem: 'guitar-main', band: 'mid', idealGain: -4, freqCenter: 2500, freqRange: [1500, 4000], tolerance: 4 }
-                ]
-            },
-            {
-                id: 'muddy-piano-tom',
-                title: '3. Muddy Low-Mids',
-                description: 'The piano and floor tom are making the low-mids muddy and undefined. Clean it up so each has its own space.',
-                hint: 'The mud usually sits around 200-400Hz. Cut one or both in that area.',
-                stems: ['piano', 'floor-tom'],
-                targets: [
-                    { stem: 'piano', band: 'low', idealGain: -4, freqCenter: 300, freqRange: [180, 450], tolerance: 4 },
-                    { stem: 'floor-tom', band: 'low', idealGain: -3, freqCenter: 250, freqRange: [150, 400], tolerance: 4 }
-                ]
-            },
-            {
-                id: 'competing-guitars',
-                title: '4. Competing Guitars',
-                description: 'Two guitars playing together sound like a wall of mush. Separate them so you can hear both clearly.',
-                hint: 'Give each guitar its own frequency pocket — cut one where you boost the other.',
-                stems: ['guitar-main', 'guitar-overdub'],
-                targets: [
-                    { stem: 'guitar-main', band: 'mid', idealGain: -3, freqCenter: 800, freqRange: [500, 1200], tolerance: 4 },
-                    { stem: 'guitar-overdub', band: 'mid', idealGain: -3, freqCenter: 2500, freqRange: [1800, 4000], tolerance: 4 }
-                ]
-            },
-            {
-                id: 'vocal-clarity',
-                title: '5. Vocal Clarity',
-                description: 'Lead and backing vocals are blending into each other. Give each its own space so both are intelligible.',
-                hint: 'The lead needs presence (2-5kHz). Try cutting the backing vocals there, or boosting the lead\'s air.',
-                stems: ['lead-vocals', 'backing-vocals'],
-                targets: [
-                    { stem: 'backing-vocals', band: 'mid', idealGain: -3, freqCenter: 3000, freqRange: [2000, 5000], tolerance: 4 },
-                    { stem: 'lead-vocals', band: 'high', idealGain: 2, freqCenter: 5000, freqRange: [3000, 8000], tolerance: 4 }
-                ]
-            },
-            {
-                id: 'full-mix-mud',
-                title: '6. Full Mix Cleanup',
-                description: 'Piano, guitar, and melodica together sound thick and undefined. Clean up the low-mids across all three so the mix breathes.',
-                hint: 'Each instrument contributes mud in slightly different spots between 200-600Hz. Cut each where it\'s least important.',
-                stems: ['piano', 'guitar-main', 'melodica'],
-                targets: [
-                    { stem: 'piano', band: 'low', idealGain: -3, freqCenter: 300, freqRange: [200, 450], tolerance: 4 },
-                    { stem: 'guitar-main', band: 'low', idealGain: -3, freqCenter: 400, freqRange: [250, 550], tolerance: 4 },
-                    { stem: 'melodica', band: 'low', idealGain: -3, freqCenter: 350, freqRange: [200, 500], tolerance: 4 }
-                ]
-            }
+        const CHANNELS = [
+            { id: 'lead-vocals', name: 'Lead Vox', icon: '\u{1F3A4}' },
+            { id: 'backing-vocals', name: 'BV', icon: '\u{1F3B6}' },
+            { id: 'piano', name: 'Piano', icon: '\u{1F3B9}' },
+            { id: 'guitar-main', name: 'Guitar', icon: '\u{1F3B8}' },
+            { id: 'guitar-overdub', name: 'Gtr OD', icon: '\u{1F3B8}' },
+            { id: 'overhead', name: 'OH', icon: '\u{1FA87}' },
+            { id: 'floor-tom', name: 'Floor Tom', icon: '\u{1F941}' },
         ];
 
-        // --- State ---
+        const NODE_COLORS = {
+            hp: '#f97316',
+            ls: '#facc15',
+            band: '#4ade80',
+            hs: '#a78bfa',
+        };
+
         let audioCtx = null;
         let masterGain = null;
-        let stemNodes = {};  // { name: { source, buffer, eqLow, eqMid, eqHigh, gain, analyser } }
-        let referenceNode = null;
+        let channels = {};
         let referenceBuffer = null;
+        let referenceSource = null;
         let isPlaying = false;
-        let isBypassed = false;
         let isReference = false;
-        let currentChallenge = challenges[0];
-        let score = 0;
-        let completedChallenges = new Set();
+        let selectedChannel = null;
 
-        // --- DOM ---
-        const challengeSelect = document.getElementById('challengeSelect');
-        const challengeDesc = document.getElementById('challengeDesc');
-        const challengeHint = document.getElementById('challengeHint');
-        const stemsContainer = document.getElementById('stemsContainer');
+        const mixer = document.getElementById('mixer');
         const playBtn = document.getElementById('playBtn');
-        const bypassBtn = document.getElementById('bypassBtn');
         const refBtn = document.getElementById('refBtn');
-        const submitBtn = document.getElementById('submitBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const feedbackEl = document.getElementById('feedback');
-        const scoreEl = document.getElementById('score');
-        const challengeNumEl = document.getElementById('challengeNum');
+        const eqOverlay = document.getElementById('eqOverlay');
+        const eqClose = document.getElementById('eqClose');
+        const eqTitle = document.getElementById('eqTitle');
+        const eqCanvas = document.getElementById('eqCanvas');
+        const eqCtx = eqCanvas.getContext('2d');
 
-        // --- Init ---
-        challenges.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = c.title;
-            challengeSelect.appendChild(opt);
-        });
+        const sliders = {
+            hpFreq: document.getElementById('hpFreq'),
+            hpQ: document.getElementById('hpQ'),
+            lsFreq: document.getElementById('lsFreq'),
+            lsGain: document.getElementById('lsGain'),
+            bandFreq: document.getElementById('bandFreq'),
+            bandGain: document.getElementById('bandGain'),
+            bandQ: document.getElementById('bandQ'),
+            hsFreq: document.getElementById('hsFreq'),
+            hsGain: document.getElementById('hsGain'),
+        };
+        const readouts = {
+            hpFreq: document.getElementById('hpFreqVal'),
+            hpQ: document.getElementById('hpQVal'),
+            lsFreq: document.getElementById('lsFreqVal'),
+            lsGain: document.getElementById('lsGainVal'),
+            bandFreq: document.getElementById('bandFreqVal'),
+            bandGain: document.getElementById('bandGainVal'),
+            bandQ: document.getElementById('bandQVal'),
+            hsFreq: document.getElementById('hsFreqVal'),
+            hsGain: document.getElementById('hsGainVal'),
+        };
 
+        // --- Audio ---
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             masterGain = audioCtx.createGain();
-            masterGain.gain.value = 0.6;
+            masterGain.gain.value = 1.0;
             masterGain.connect(audioCtx.destination);
         }
 
-        async function loadStem(name) {
+        async function loadBuffer(name) {
             const resp = await fetch(`stems/${name}.mp3`);
             const buf = await resp.arrayBuffer();
             return await audioCtx.decodeAudioData(buf);
         }
 
-        function createStemChain(name, buffer) {
-            const eqLow = audioCtx.createBiquadFilter();
-            eqLow.type = 'lowShelf';
-            eqLow.frequency.value = 200;
-            eqLow.gain.value = 0;
-
-            const eqMid = audioCtx.createBiquadFilter();
-            eqMid.type = 'peaking';
-            eqMid.frequency.value = 1000;
-            eqMid.Q.value = 1.5;
-            eqMid.gain.value = 0;
-
-            const eqHigh = audioCtx.createBiquadFilter();
-            eqHigh.type = 'highShelf';
-            eqHigh.frequency.value = 4000;
-            eqHigh.gain.value = 0;
-
-            const gain = audioCtx.createGain();
-            gain.gain.value = 1.0;
-
-            return { buffer, eqLow, eqMid, eqHigh, gain, source: null, muted: false, soloed: false };
+        function defaultEQ() {
+            return { hpFreq: 20, hpQ: 0.7, lsFreq: 200, lsGain: 0, bandFreq: 1000, bandGain: 0, bandQ: 2, hsFreq: 5000, hsGain: 0 };
         }
 
-        function connectStem(node) {
-            if (node.source) {
-                try { node.source.stop(); } catch(e) {}
-                try { node.source.disconnect(); } catch(e) {}
-            }
-            node.source = audioCtx.createBufferSource();
-            node.source.buffer = node.buffer;
-            node.source.loop = true;
+        async function loadAllStems() {
+            initAudio();
+            const loads = CHANNELS.map(async ch => {
+                const buffer = await loadBuffer(ch.id);
+                const hp = audioCtx.createBiquadFilter();
+                hp.type = 'highpass'; hp.frequency.value = 20; hp.Q.value = 0.7;
 
-            if (isBypassed) {
-                node.source.connect(node.gain);
-            } else {
-                node.source.connect(node.eqLow);
-                node.eqLow.connect(node.eqMid);
-                node.eqMid.connect(node.eqHigh);
-                node.eqHigh.connect(node.gain);
-            }
-            node.gain.connect(masterGain);
+                const ls = audioCtx.createBiquadFilter();
+                ls.type = 'lowshelf'; ls.frequency.value = 200; ls.gain.value = 0;
+
+                const band = audioCtx.createBiquadFilter();
+                band.type = 'peaking'; band.frequency.value = 1000; band.gain.value = 0; band.Q.value = 2;
+
+                const hs = audioCtx.createBiquadFilter();
+                hs.type = 'highshelf'; hs.frequency.value = 5000; hs.gain.value = 0;
+
+                const gain = audioCtx.createGain();
+                gain.gain.value = 1.0;
+
+                channels[ch.id] = {
+                    buffer, hp, ls, band, hs, gain,
+                    source: null,
+                    vol: 1.0,
+                    muted: false,
+                    soloed: false,
+                    eq: defaultEQ()
+                };
+            });
+            await Promise.all(loads);
+            referenceBuffer = await loadBuffer('reference-mix');
         }
 
         function startPlayback() {
+            if (isReference) stopReference();
             const startTime = audioCtx.currentTime + 0.05;
-            Object.values(stemNodes).forEach(node => {
-                connectStem(node);
-                node.source.start(startTime);
+            Object.entries(channels).forEach(([id, ch]) => {
+                if (ch.source) { try { ch.source.stop(); } catch(e) {} }
+                ch.source = audioCtx.createBufferSource();
+                ch.source.buffer = ch.buffer;
+                ch.source.loop = true;
+                ch.source.connect(ch.hp);
+                ch.hp.connect(ch.ls);
+                ch.ls.connect(ch.band);
+                ch.band.connect(ch.hs);
+                ch.hs.connect(ch.gain);
+                ch.gain.connect(masterGain);
+                ch.source.start(startTime);
             });
-            updateMutesSolos();
+            updateGains();
+            isPlaying = true;
+            playBtn.textContent = 'Stop';
+            playBtn.classList.add('active');
         }
 
         function stopPlayback() {
-            Object.values(stemNodes).forEach(node => {
-                if (node.source) {
-                    try { node.source.stop(); } catch(e) {}
-                    try { node.source.disconnect(); } catch(e) {}
-                    node.source = null;
+            Object.values(channels).forEach(ch => {
+                if (ch.source) {
+                    try { ch.source.stop(); } catch(e) {}
+                    try { ch.source.disconnect(); } catch(e) {}
+                    ch.source = null;
                 }
             });
-            if (referenceNode) {
-                try { referenceNode.stop(); } catch(e) {}
-                referenceNode = null;
+            isPlaying = false;
+            playBtn.textContent = 'Play';
+            playBtn.classList.remove('active');
+        }
+
+        function startReference() {
+            if (isPlaying) stopPlayback();
+            referenceSource = audioCtx.createBufferSource();
+            referenceSource.buffer = referenceBuffer;
+            referenceSource.loop = true;
+            referenceSource.connect(masterGain);
+            referenceSource.start();
+            isReference = true;
+            refBtn.classList.add('active');
+        }
+
+        function stopReference() {
+            if (referenceSource) {
+                try { referenceSource.stop(); } catch(e) {}
+                referenceSource = null;
             }
-        }
-
-        function reconnectAll() {
-            if (!isPlaying) return;
-            const time = audioCtx.currentTime;
-            Object.values(stemNodes).forEach(node => {
-                if (!node.source) return;
-                try { node.source.disconnect(); } catch(e) {}
-                if (isBypassed) {
-                    node.source.connect(node.gain);
-                } else {
-                    node.source.connect(node.eqLow);
-                    node.eqLow.connect(node.eqMid);
-                    node.eqMid.connect(node.eqHigh);
-                    node.eqHigh.connect(node.gain);
-                }
-                node.gain.connect(masterGain);
-            });
-        }
-
-        function updateMutesSolos() {
-            const anySoloed = Object.values(stemNodes).some(n => n.soloed);
-            Object.entries(stemNodes).forEach(([name, node]) => {
-                if (anySoloed) {
-                    node.gain.gain.value = node.soloed ? 1.0 : 0;
-                } else {
-                    node.gain.gain.value = node.muted ? 0 : 1.0;
-                }
-            });
-        }
-
-        // --- Load challenge ---
-        async function loadChallenge(challenge) {
-            currentChallenge = challenge;
-            challengeDesc.textContent = challenge.description;
-            challengeHint.textContent = challenge.hint;
-
-            if (isPlaying) {
-                stopPlayback();
-                isPlaying = false;
-                playBtn.textContent = 'Play';
-                playBtn.classList.remove('active');
-            }
-
             isReference = false;
-            isBypassed = false;
-            bypassBtn.classList.remove('active');
             refBtn.classList.remove('active');
-
-            initAudio();
-
-            stemNodes = {};
-            for (const name of challenge.stems) {
-                const buffer = await loadStem(name);
-                stemNodes[name] = createStemChain(name, buffer);
-            }
-
-            if (!referenceBuffer) {
-                referenceBuffer = await loadStem('reference-mix');
-            }
-
-            buildStemUI();
-            hideFeedback();
         }
 
-        // --- UI ---
-        function buildStemUI() {
-            stemsContainer.innerHTML = '';
-            Object.entries(stemNodes).forEach(([name, node]) => {
-                const row = document.createElement('div');
-                row.className = 'stem-row';
-                row.dataset.stem = name;
-
-                const label = document.createElement('div');
-                label.className = 'stem-label';
-                label.textContent = name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-                const controls = document.createElement('div');
-                controls.className = 'stem-controls';
-
-                // Solo button
-                const soloBtn = document.createElement('button');
-                soloBtn.className = 'stem-btn';
-                soloBtn.textContent = 'S';
-                soloBtn.title = 'Solo';
-                soloBtn.addEventListener('click', () => {
-                    node.soloed = !node.soloed;
-                    soloBtn.classList.toggle('solo-active', node.soloed);
-                    updateMutesSolos();
-                });
-
-                // Mute button
-                const muteBtn = document.createElement('button');
-                muteBtn.className = 'stem-btn';
-                muteBtn.textContent = 'M';
-                muteBtn.title = 'Mute';
-                muteBtn.addEventListener('click', () => {
-                    node.muted = !node.muted;
-                    muteBtn.classList.toggle('mute-active', node.muted);
-                    updateMutesSolos();
-                });
-
-                // EQ bands
-                const eqBands = document.createElement('div');
-                eqBands.className = 'eq-bands';
-
-                // Low shelf
-                eqBands.appendChild(createEQBand('Lo', node.eqLow, name));
-                // Mid freq control
-                eqBands.appendChild(createMidSection(node.eqMid, name));
-                // High shelf
-                eqBands.appendChild(createEQBand('Hi', node.eqHigh, name));
-
-                controls.appendChild(soloBtn);
-                controls.appendChild(muteBtn);
-                controls.appendChild(eqBands);
-
-                row.appendChild(label);
-                row.appendChild(controls);
-                stemsContainer.appendChild(row);
-            });
-        }
-
-        function createEQBand(label, filter, stemName) {
-            const band = document.createElement('div');
-            band.className = 'eq-band';
-
-            const lbl = document.createElement('label');
-            lbl.textContent = label;
-
-            const slider = document.createElement('input');
-            slider.type = 'range';
-            slider.className = 'eq-knob';
-            slider.min = -12;
-            slider.max = 12;
-            slider.step = 0.5;
-            slider.value = 0;
-
-            const val = document.createElement('div');
-            val.className = 'eq-val';
-            val.textContent = '0dB';
-
-            slider.addEventListener('input', () => {
-                const v = parseFloat(slider.value);
-                filter.gain.value = v;
-                val.textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + 'dB';
-            });
-
-            band.appendChild(lbl);
-            band.appendChild(slider);
-            band.appendChild(val);
-            return band;
-        }
-
-        function createMidSection(filter, stemName) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'eq-band';
-            wrapper.style.gap = '2px';
-
-            const lbl = document.createElement('label');
-            lbl.textContent = 'Mid';
-
-            // Frequency slider
-            const freqSlider = document.createElement('input');
-            freqSlider.type = 'range';
-            freqSlider.className = 'mid-freq';
-            freqSlider.min = Math.log10(200);
-            freqSlider.max = Math.log10(8000);
-            freqSlider.step = 0.01;
-            freqSlider.value = Math.log10(1000);
-
-            const freqVal = document.createElement('div');
-            freqVal.className = 'eq-val';
-            freqVal.textContent = '1.0k';
-
-            freqSlider.addEventListener('input', () => {
-                const freq = Math.pow(10, parseFloat(freqSlider.value));
-                filter.frequency.value = freq;
-                freqVal.textContent = freq >= 1000 ? (freq / 1000).toFixed(1) + 'k' : Math.round(freq) + '';
-            });
-
-            // Gain slider
-            const gainSlider = document.createElement('input');
-            gainSlider.type = 'range';
-            gainSlider.className = 'eq-knob';
-            gainSlider.min = -12;
-            gainSlider.max = 12;
-            gainSlider.step = 0.5;
-            gainSlider.value = 0;
-
-            const gainVal = document.createElement('div');
-            gainVal.className = 'eq-val';
-            gainVal.textContent = '0dB';
-
-            gainSlider.addEventListener('input', () => {
-                const v = parseFloat(gainSlider.value);
-                filter.gain.value = v;
-                gainVal.textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + 'dB';
-            });
-
-            wrapper.appendChild(lbl);
-            wrapper.appendChild(freqSlider);
-            wrapper.appendChild(freqVal);
-            wrapper.appendChild(gainSlider);
-            wrapper.appendChild(gainVal);
-            return wrapper;
-        }
-
-        function resetAllEQ() {
-            Object.values(stemNodes).forEach(node => {
-                node.eqLow.gain.value = 0;
-                node.eqMid.gain.value = 0;
-                node.eqMid.frequency.value = 1000;
-                node.eqHigh.gain.value = 0;
-                node.muted = false;
-                node.soloed = false;
-            });
-            buildStemUI();
-            if (isPlaying) reconnectAll();
-        }
-
-        // --- Scoring ---
-        function scoreChallenge() {
-            let totalScore = 0;
-            let maxScore = currentChallenge.targets.length * 100;
-            const details = [];
-
-            currentChallenge.targets.forEach(target => {
-                const node = stemNodes[target.stem];
-                if (!node) return;
-
-                let filter, userGain, userFreq;
-                if (target.band === 'low') {
-                    filter = node.eqLow;
-                    userGain = filter.gain.value;
-                    userFreq = filter.frequency.value;
-                } else if (target.band === 'mid') {
-                    filter = node.eqMid;
-                    userGain = filter.gain.value;
-                    userFreq = filter.frequency.value;
+        function updateGains() {
+            const anySoloed = Object.values(channels).some(ch => ch.soloed);
+            Object.values(channels).forEach(ch => {
+                if (anySoloed) {
+                    ch.gain.gain.value = ch.soloed ? ch.vol : 0;
                 } else {
-                    filter = node.eqHigh;
-                    userGain = filter.gain.value;
-                    userFreq = filter.frequency.value;
+                    ch.gain.gain.value = ch.muted ? 0 : ch.vol;
                 }
+            });
+        }
 
-                // Score gain direction and magnitude
-                let gainScore = 0;
-                const idealGain = target.idealGain;
-                const gainDiff = Math.abs(userGain - idealGain);
-                const sameDirection = (userGain < 0 && idealGain < 0) || (userGain > 0 && idealGain > 0);
+        function applyEQ(id) {
+            const ch = channels[id];
+            if (!ch) return;
+            ch.hp.frequency.value = Math.max(20, ch.eq.hpFreq);
+            ch.hp.Q.value = ch.eq.hpQ;
+            ch.ls.frequency.value = ch.eq.lsFreq;
+            ch.ls.gain.value = ch.eq.lsGain;
+            ch.band.frequency.value = ch.eq.bandFreq;
+            ch.band.gain.value = ch.eq.bandGain;
+            ch.band.Q.value = ch.eq.bandQ;
+            ch.hs.frequency.value = ch.eq.hsFreq;
+            ch.hs.gain.value = ch.eq.hsGain;
+        }
 
-                if (sameDirection && gainDiff <= target.tolerance) {
-                    gainScore = Math.max(0, 1 - gainDiff / target.tolerance);
-                } else if (sameDirection) {
-                    gainScore = 0.2;
+        // --- Fader: 0dB at 75%, +12dB at top, -inf at bottom ---
+        function pctToGain(pct) {
+            if (pct <= 0) return 0;
+            const dB = (pct - 0.75) * (12 / 0.25) * (pct > 0.75 ? 1 : (pct / 0.75) > 0 ? 20 * Math.log10(pct / 0.75) / (20 * Math.log10(1)) : -Infinity);
+            // Simpler: linear in dB. Bottom=silence, 75%=0dB, 100%=+12dB
+            const dBval = pct <= 0.001 ? -Infinity : -48 + (pct / 0.75) * 48;
+            // Actually let's do it cleanly:
+            // 0% = -inf, 75% = 0dB, 100% = +12dB
+            if (pct <= 0) return 0;
+            if (pct <= 0.75) {
+                // Map 0-0.75 to -60dB to 0dB (exponential)
+                const dbRange = 60;
+                const db = -dbRange * (1 - pct / 0.75);
+                return Math.pow(10, db / 20);
+            } else {
+                // Map 0.75-1.0 to 0dB to +12dB
+                const db = ((pct - 0.75) / 0.25) * 12;
+                return Math.pow(10, db / 20);
+            }
+        }
+        function gainToDb(gain) {
+            if (gain <= 0) return '-∞';
+            return (20 * Math.log10(gain)).toFixed(1);
+        }
+        function gainToPct(gain) {
+            if (gain <= 0) return 0;
+            const db = 20 * Math.log10(gain);
+            if (db <= 0) {
+                return 0.75 * (1 + db / 60);
+            } else {
+                return 0.75 + (db / 12) * 0.25;
+            }
+        }
+
+        // --- Mixer UI ---
+        let activeFader = null;
+        document.addEventListener('mousemove', (e) => { if (activeFader) activeFader(e); });
+        document.addEventListener('touchmove', (e) => { if (activeFader) activeFader(e); }, { passive: false });
+        document.addEventListener('mouseup', () => { activeFader = null; });
+        document.addEventListener('touchend', () => { activeFader = null; });
+
+        function buildMixer() {
+            mixer.innerHTML = '';
+            CHANNELS.forEach(ch => {
+                const col = document.createElement('div');
+                col.className = 'channel';
+
+                const name = document.createElement('div');
+                name.className = 'channel-name';
+                name.textContent = ch.name;
+
+                const eqBtn = document.createElement('button');
+                eqBtn.className = 'eq-btn';
+                eqBtn.textContent = 'EQ';
+                eqBtn.dataset.id = ch.id;
+                eqBtn.addEventListener('click', () => openEQ(ch.id));
+
+                const btns = document.createElement('div');
+                btns.className = 'channel-btns';
+                const soloBtn = document.createElement('button');
+                soloBtn.className = 'ch-btn';
+                soloBtn.textContent = 'S';
+                soloBtn.addEventListener('click', () => {
+                    channels[ch.id].soloed = !channels[ch.id].soloed;
+                    soloBtn.classList.toggle('solo-on', channels[ch.id].soloed);
+                    updateGains();
+                });
+                const muteBtn = document.createElement('button');
+                muteBtn.className = 'ch-btn';
+                muteBtn.textContent = 'M';
+                muteBtn.addEventListener('click', () => {
+                    channels[ch.id].muted = !channels[ch.id].muted;
+                    muteBtn.classList.toggle('mute-on', channels[ch.id].muted);
+                    updateGains();
+                });
+                btns.appendChild(soloBtn);
+                btns.appendChild(muteBtn);
+
+                const faderTrack = document.createElement('div');
+                faderTrack.className = 'fader-track';
+                const faderFill = document.createElement('div');
+                faderFill.className = 'fader-fill';
+                faderFill.style.height = '75%';
+                const faderUnity = document.createElement('div');
+                faderUnity.className = 'fader-unity';
+                const faderThumb = document.createElement('div');
+                faderThumb.className = 'fader-thumb';
+                faderThumb.style.bottom = '75%';
+                faderTrack.appendChild(faderFill);
+                faderTrack.appendChild(faderUnity);
+                faderTrack.appendChild(faderThumb);
+
+                const faderVal = document.createElement('div');
+                faderVal.className = 'fader-val';
+                faderVal.textContent = '0.0dB';
+
+                const icon = document.createElement('div');
+                icon.className = 'channel-icon';
+                icon.textContent = ch.icon;
+
+                function setFader(e) {
+                    const rect = faderTrack.getBoundingClientRect();
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const pct = 1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+                    const gain = pctToGain(pct);
+                    channels[ch.id].vol = gain;
+                    faderFill.style.height = (pct * 100) + '%';
+                    faderThumb.style.bottom = (pct * 100) + '%';
+                    faderVal.textContent = gain < 0.001 ? '-∞dB' : gainToDb(gain) + 'dB';
+                    updateGains();
                 }
+                faderTrack.addEventListener('mousedown', (e) => { activeFader = setFader; setFader(e); });
+                faderTrack.addEventListener('touchstart', (e) => { activeFader = setFader; setFader(e); e.preventDefault(); });
 
-                // Score frequency (for mid band)
-                let freqScore = 1.0;
-                if (target.band === 'mid' && target.freqRange) {
-                    if (userFreq >= target.freqRange[0] && userFreq <= target.freqRange[1]) {
-                        freqScore = 1.0;
-                    } else {
-                        const octaveDist = Math.abs(Math.log2(userFreq / target.freqCenter));
-                        freqScore = Math.max(0, 1 - octaveDist / 2);
-                    }
-                }
+                col.appendChild(name);
+                col.appendChild(eqBtn);
+                col.appendChild(btns);
+                col.appendChild(faderTrack);
+                col.appendChild(faderVal);
+                col.appendChild(icon);
+                mixer.appendChild(col);
+            });
+        }
 
-                // Did they at least do something?
-                const didSomething = Math.abs(userGain) > 0.5;
-                const stemScore = didSomething ? Math.round(gainScore * freqScore * 100) : 0;
-                totalScore += stemScore;
+        // --- EQ Panel ---
+        async function openEQ(id) {
+            if (!channels[id]) {
+                await ensureLoaded();
+            }
+            selectedChannel = id;
+            const info = CHANNELS.find(c => c.id === id);
+            eqTitle.textContent = info.name + ' — EQ';
+            syncSlidersFromEQ();
+            updateEQReadouts();
+            eqOverlay.classList.add('open');
+            requestAnimationFrame(() => drawEQCurve());
+        }
 
-                const stemLabel = target.stem.replace(/-/g, ' ');
-                details.push(`${stemLabel} ${target.band}: ${stemScore}/100`);
+        function closeEQ() {
+            eqOverlay.classList.remove('open');
+            selectedChannel = null;
+            updateEQButtons();
+        }
+
+        function syncSlidersFromEQ() {
+            if (!selectedChannel) return;
+            const eq = channels[selectedChannel].eq;
+            sliders.hpFreq.value = Math.log10(eq.hpFreq);
+            sliders.hpQ.value = Math.log2(eq.hpQ);
+            sliders.lsFreq.value = Math.log10(eq.lsFreq);
+            sliders.lsGain.value = eq.lsGain;
+            sliders.bandFreq.value = Math.log10(eq.bandFreq);
+            sliders.bandGain.value = eq.bandGain;
+            sliders.bandQ.value = Math.log2(eq.bandQ);
+            sliders.hsFreq.value = Math.log10(eq.hsFreq);
+            sliders.hsGain.value = eq.hsGain;
+        }
+
+        function updateEQReadouts() {
+            const eq = selectedChannel ? channels[selectedChannel].eq : defaultEQ();
+            readouts.hpFreq.textContent = fmtFreq(eq.hpFreq);
+            readouts.hpQ.textContent = eq.hpQ.toFixed(1);
+            readouts.lsFreq.textContent = fmtFreq(eq.lsFreq);
+            readouts.lsGain.textContent = fmtGain(eq.lsGain);
+            readouts.bandFreq.textContent = fmtFreq(eq.bandFreq);
+            readouts.bandGain.textContent = fmtGain(eq.bandGain);
+            readouts.bandQ.textContent = eq.bandQ.toFixed(1);
+            readouts.hsFreq.textContent = fmtFreq(eq.hsFreq);
+            readouts.hsGain.textContent = fmtGain(eq.hsGain);
+        }
+
+        function fmtFreq(f) { return f >= 1000 ? (f / 1000).toFixed(1) + 'k' : Math.round(f) + ''; }
+        function fmtGain(g) { return (g >= 0 ? '+' : '') + g.toFixed(1) + 'dB'; }
+
+        function saveEQFromSliders() {
+            if (!selectedChannel) return;
+            const eq = channels[selectedChannel].eq;
+            eq.hpFreq = Math.pow(10, parseFloat(sliders.hpFreq.value));
+            eq.hpQ = Math.pow(2, parseFloat(sliders.hpQ.value));
+            eq.lsFreq = Math.pow(10, parseFloat(sliders.lsFreq.value));
+            eq.lsGain = parseFloat(sliders.lsGain.value);
+            eq.bandFreq = Math.pow(10, parseFloat(sliders.bandFreq.value));
+            eq.bandGain = parseFloat(sliders.bandGain.value);
+            eq.bandQ = Math.pow(2, parseFloat(sliders.bandQ.value));
+            eq.hsFreq = Math.pow(10, parseFloat(sliders.hsFreq.value));
+            eq.hsGain = parseFloat(sliders.hsGain.value);
+            applyEQ(selectedChannel);
+            updateEQReadouts();
+            drawEQCurve();
+        }
+
+        function updateEQButtons() {
+            document.querySelectorAll('.eq-btn').forEach(btn => {
+                const ch = channels[btn.dataset.id];
+                if (!ch) return;
+                const eq = ch.eq;
+                const hasEQ = eq.hpFreq > 25 || Math.abs(eq.lsGain) > 0.5 || Math.abs(eq.bandGain) > 0.5 || Math.abs(eq.hsGain) > 0.5;
+                btn.classList.toggle('has-eq', hasEQ);
+            });
+        }
+
+        Object.values(sliders).forEach(s => s.addEventListener('input', saveEQFromSliders));
+        eqClose.addEventListener('click', closeEQ);
+        eqOverlay.addEventListener('click', (e) => { if (e.target === eqOverlay) closeEQ(); });
+
+        // --- EQ Curve Drawing with Draggable Nodes ---
+        const FREQ_MIN = 20, FREQ_MAX = 20000;
+        const DB_MIN = -18, DB_MAX = 18;
+
+        function freqToX(f, pad, gw) {
+            return pad.left + ((Math.log10(f) - Math.log10(FREQ_MIN)) / (Math.log10(FREQ_MAX) - Math.log10(FREQ_MIN))) * gw;
+        }
+        function xToFreq(x, pad, gw) {
+            const ratio = (x - pad.left) / gw;
+            return Math.pow(10, Math.log10(FREQ_MIN) + ratio * (Math.log10(FREQ_MAX) - Math.log10(FREQ_MIN)));
+        }
+        function dbToY(db, pad, gh) {
+            return pad.top + ((DB_MAX - db) / (DB_MAX - DB_MIN)) * gh;
+        }
+        function yToDb(y, pad, gh) {
+            return DB_MAX - ((y - pad.top) / gh) * (DB_MAX - DB_MIN);
+        }
+
+        function getFilterResponse(type, freq, gain, q, freqArray) {
+            if (!audioCtx) return new Array(freqArray.length).fill(0);
+            if ((type === 'lowshelf' || type === 'highshelf') && Math.abs(gain) < 0.01) {
+                return new Array(freqArray.length).fill(0);
+            }
+            const f = audioCtx.createBiquadFilter();
+            f.type = type;
+            f.frequency.value = freq;
+            if (type === 'peaking') f.Q.value = q;
+            if (type === 'highpass') f.Q.value = q;
+            if (type === 'peaking' || type === 'lowshelf' || type === 'highshelf') f.gain.value = gain;
+            const mag = new Float32Array(freqArray.length);
+            const phase = new Float32Array(freqArray.length);
+            f.getFrequencyResponse(freqArray, mag, phase);
+            return Array.from(mag).map(m => 20 * Math.log10(m));
+        }
+
+        function drawEQCurve() {
+            if (!selectedChannel || !audioCtx) return;
+            const eq = channels[selectedChannel].eq;
+
+            const dpr = window.devicePixelRatio || 1;
+            const rect = eqCanvas.getBoundingClientRect();
+            eqCanvas.width = rect.width * dpr;
+            eqCanvas.height = rect.height * dpr;
+            eqCtx.scale(dpr, dpr);
+
+            const w = rect.width;
+            const h = rect.height;
+            const pad = { top: 15, bottom: 25, left: 40, right: 15 };
+            const gw = w - pad.left - pad.right;
+            const gh = h - pad.top - pad.bottom;
+
+            eqCtx.fillStyle = '#0a1220';
+            eqCtx.fillRect(0, 0, w, h);
+
+            // Grid
+            eqCtx.font = '10px sans-serif';
+            const freqLabels = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
+            eqCtx.fillStyle = '#334';
+            eqCtx.strokeStyle = '#1a2535';
+            eqCtx.lineWidth = 1;
+            freqLabels.forEach(f => {
+                const x = freqToX(f, pad, gw);
+                eqCtx.beginPath(); eqCtx.moveTo(x, pad.top); eqCtx.lineTo(x, h - pad.bottom); eqCtx.stroke();
+                const label = f >= 1000 ? (f / 1000) + 'k' : f.toString();
+                eqCtx.fillText(label, x - 8, h - pad.bottom + 12);
             });
 
-            const pct = Math.round((totalScore / maxScore) * 100);
-            return { pct, totalScore, maxScore, details };
+            [-12, -6, 0, 6, 12].forEach(g => {
+                const y = dbToY(g, pad, gh);
+                eqCtx.strokeStyle = g === 0 ? '#2a3a4a' : '#1a2535';
+                eqCtx.lineWidth = g === 0 ? 1.5 : 1;
+                eqCtx.beginPath(); eqCtx.moveTo(pad.left, y); eqCtx.lineTo(w - pad.right, y); eqCtx.stroke();
+                eqCtx.fillStyle = '#445';
+                eqCtx.fillText(g + 'dB', 5, y + 3);
+            });
+
+            // Compute responses
+            const numPts = 300;
+            const freqArray = new Float32Array(numPts);
+            for (let i = 0; i < numPts; i++) freqArray[i] = FREQ_MIN * Math.pow(FREQ_MAX / FREQ_MIN, i / (numPts - 1));
+
+            const hpR = getFilterResponse('highpass', eq.hpFreq, 0, eq.hpQ, freqArray);
+            const lsR = getFilterResponse('lowshelf', eq.lsFreq, eq.lsGain, 0, freqArray);
+            const bandR = getFilterResponse('peaking', eq.bandFreq, eq.bandGain, eq.bandQ, freqArray);
+            const hsR = getFilterResponse('highshelf', eq.hsFreq, eq.hsGain, 0, freqArray);
+
+            // Individual curves (faint)
+            const curves = [
+                { resp: hpR, color: NODE_COLORS.hp },
+                { resp: lsR, color: NODE_COLORS.ls },
+                { resp: bandR, color: NODE_COLORS.band },
+                { resp: hsR, color: NODE_COLORS.hs },
+            ];
+            curves.forEach(({ resp, color }) => {
+                const hasEffect = resp.some(v => Math.abs(v) > 0.1);
+                if (!hasEffect) return;
+                eqCtx.beginPath();
+                eqCtx.strokeStyle = color + '44';
+                eqCtx.lineWidth = 1.5;
+                for (let i = 0; i < numPts; i++) {
+                    const x = pad.left + (i / (numPts - 1)) * gw;
+                    const y = Math.max(pad.top, Math.min(pad.top + gh, dbToY(resp[i], pad, gh)));
+                    if (i === 0) eqCtx.moveTo(x, y); else eqCtx.lineTo(x, y);
+                }
+                eqCtx.stroke();
+            });
+
+            // Combined curve
+            eqCtx.beginPath();
+            eqCtx.strokeStyle = '#00d4ff';
+            eqCtx.lineWidth = 2.5;
+            for (let i = 0; i < numPts; i++) {
+                const total = hpR[i] + lsR[i] + bandR[i] + hsR[i];
+                const x = pad.left + (i / (numPts - 1)) * gw;
+                const y = Math.max(pad.top, Math.min(pad.top + gh, dbToY(total, pad, gh)));
+                if (i === 0) eqCtx.moveTo(x, y); else eqCtx.lineTo(x, y);
+            }
+            eqCtx.stroke();
+
+            // Draggable nodes
+            const nodes = getNodePositions(eq, pad, gw, gh);
+            nodes.forEach(n => {
+                eqCtx.beginPath();
+                eqCtx.arc(n.x, n.y, 8, 0, Math.PI * 2);
+                eqCtx.fillStyle = n.color;
+                eqCtx.fill();
+                eqCtx.strokeStyle = '#fff';
+                eqCtx.lineWidth = 1.5;
+                eqCtx.stroke();
+            });
         }
 
-        // --- Event listeners ---
-        playBtn.addEventListener('click', () => {
+        function getNodePositions(eq, pad, gw, gh) {
+            // HP node: position at HP freq, on the -3dB line relative to 0
+            const hpX = freqToX(eq.hpFreq, pad, gw);
+            const hpY = dbToY(-3, pad, gh);
+            // LS node: at ls freq, ls gain
+            const lsX = freqToX(eq.lsFreq, pad, gw);
+            const lsY = dbToY(eq.lsGain, pad, gh);
+            // Band node: at band freq, band gain
+            const bandX = freqToX(eq.bandFreq, pad, gw);
+            const bandY = dbToY(eq.bandGain, pad, gh);
+            // HS node: at hs freq, hs gain
+            const hsX = freqToX(eq.hsFreq, pad, gw);
+            const hsY = dbToY(eq.hsGain, pad, gh);
+
+            return [
+                { key: 'hp', x: hpX, y: hpY, color: NODE_COLORS.hp },
+                { key: 'ls', x: lsX, y: lsY, color: NODE_COLORS.ls },
+                { key: 'band', x: bandX, y: bandY, color: NODE_COLORS.band },
+                { key: 'hs', x: hsX, y: hsY, color: NODE_COLORS.hs },
+            ];
+        }
+
+        // --- Canvas Drag Interaction ---
+        let dragNode = null;
+
+        function getCanvasCoords(e) {
+            const rect = eqCanvas.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+            return { x, y };
+        }
+
+        function canvasDown(e) {
+            if (!selectedChannel) return;
+            const { x, y } = getCanvasCoords(e);
+            const eq = channels[selectedChannel].eq;
+            const rect = eqCanvas.getBoundingClientRect();
+            const pad = { top: 15, bottom: 25, left: 40, right: 15 };
+            const gw = rect.width - pad.left - pad.right;
+            const gh = rect.height - pad.top - pad.bottom;
+            const nodes = getNodePositions(eq, pad, gw, gh);
+
+            let closest = null, closestDist = 30;
+            nodes.forEach(n => {
+                const d = Math.sqrt((n.x - x) ** 2 + (n.y - y) ** 2);
+                if (d < closestDist) { closest = n; closestDist = d; }
+            });
+
+            if (closest) {
+                dragNode = closest.key;
+                e.preventDefault();
+            }
+        }
+
+        function canvasMove(e) {
+            if (!dragNode || !selectedChannel) return;
+            e.preventDefault();
+            const { x, y } = getCanvasCoords(e);
+            const rect = eqCanvas.getBoundingClientRect();
+            const pad = { top: 15, bottom: 25, left: 40, right: 15 };
+            const gw = rect.width - pad.left - pad.right;
+            const gh = rect.height - pad.top - pad.bottom;
+
+            const freq = Math.max(FREQ_MIN, Math.min(FREQ_MAX, xToFreq(x, pad, gw)));
+            const db = Math.max(DB_MIN, Math.min(DB_MAX, yToDb(y, pad, gh)));
+            const eq = channels[selectedChannel].eq;
+
+            if (dragNode === 'hp') {
+                eq.hpFreq = Math.max(20, Math.min(800, freq));
+            } else if (dragNode === 'ls') {
+                eq.lsFreq = Math.max(50, Math.min(800, freq));
+                eq.lsGain = Math.max(-12, Math.min(12, db));
+            } else if (dragNode === 'band') {
+                eq.bandFreq = Math.max(100, Math.min(12000, freq));
+                eq.bandGain = Math.max(-12, Math.min(12, db));
+            } else if (dragNode === 'hs') {
+                eq.hsFreq = Math.max(2000, Math.min(16000, freq));
+                eq.hsGain = Math.max(-12, Math.min(12, db));
+            }
+
+            applyEQ(selectedChannel);
+            syncSlidersFromEQ();
+            updateEQReadouts();
+            drawEQCurve();
+        }
+
+        function canvasUp() {
+            dragNode = null;
+        }
+
+        eqCanvas.addEventListener('mousedown', canvasDown);
+        eqCanvas.addEventListener('touchstart', canvasDown, { passive: false });
+        document.addEventListener('mousemove', canvasMove);
+        document.addEventListener('touchmove', canvasMove, { passive: false });
+        document.addEventListener('mouseup', canvasUp);
+        document.addEventListener('touchend', canvasUp);
+
+        // Scroll wheel: adjusts Q of nearest node (band Q, or HP Q), or gain for shelves
+        eqCanvas.addEventListener('wheel', (e) => {
+            if (!selectedChannel) return;
+            e.preventDefault();
+            const { x, y } = getCanvasCoords(e);
+            const eq = channels[selectedChannel].eq;
+            const rect = eqCanvas.getBoundingClientRect();
+            const pad = { top: 15, bottom: 25, left: 40, right: 15 };
+            const gw = rect.width - pad.left - pad.right;
+            const gh = rect.height - pad.top - pad.bottom;
+            const nodes = getNodePositions(eq, pad, gw, gh);
+
+            let closest = null, closestDist = Infinity;
+            nodes.forEach(n => {
+                const d = Math.sqrt((n.x - x) ** 2 + (n.y - y) ** 2);
+                if (d < closestDist) { closest = n; closestDist = d; }
+            });
+            if (!closest) return;
+
+            const delta = e.deltaY > 0 ? -0.5 : 0.5;
+
+            if (closest.key === 'hp') {
+                eq.hpQ = Math.max(0.3, Math.min(8, eq.hpQ * Math.pow(2, delta * 0.3)));
+            } else if (closest.key === 'band') {
+                eq.bandQ = Math.max(0.3, Math.min(12, eq.bandQ * Math.pow(2, delta * 0.3)));
+            } else if (closest.key === 'ls') {
+                eq.lsGain = Math.max(-12, Math.min(12, eq.lsGain + delta));
+            } else if (closest.key === 'hs') {
+                eq.hsGain = Math.max(-12, Math.min(12, eq.hsGain + delta));
+            }
+
+            applyEQ(selectedChannel);
+            syncSlidersFromEQ();
+            updateEQReadouts();
+            drawEQCurve();
+        }, { passive: false });
+
+        // --- Transport ---
+        playBtn.addEventListener('click', async () => {
             initAudio();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-
-            if (isReference) {
-                isReference = false;
-                refBtn.classList.remove('active');
-                if (referenceNode) {
-                    try { referenceNode.stop(); } catch(e) {}
-                    referenceNode = null;
-                }
-            }
-
-            if (isPlaying) {
-                stopPlayback();
-                isPlaying = false;
-                playBtn.textContent = 'Play';
-                playBtn.classList.remove('active');
-            } else {
-                startPlayback();
-                isPlaying = true;
-                playBtn.textContent = 'Stop';
-                playBtn.classList.add('active');
-            }
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            if (!Object.keys(channels).length) await loadAllStems();
+            if (isReference) stopReference();
+            if (isPlaying) stopPlayback(); else startPlayback();
         });
 
-        bypassBtn.addEventListener('click', () => {
-            isBypassed = !isBypassed;
-            bypassBtn.classList.toggle('active', isBypassed);
-            if (isPlaying) {
-                stopPlayback();
-                startPlayback();
-            }
-        });
-
-        refBtn.addEventListener('click', () => {
+        refBtn.addEventListener('click', async () => {
             initAudio();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            if (!referenceBuffer) {
+                if (!Object.keys(channels).length) await loadAllStems();
+                else referenceBuffer = await loadBuffer('reference-mix');
+            }
             if (isReference) {
-                if (referenceNode) {
-                    try { referenceNode.stop(); } catch(e) {}
-                    referenceNode = null;
-                }
-                isReference = false;
-                refBtn.classList.remove('active');
-                if (isPlaying) {
-                    startPlayback();
-                }
+                stopReference();
+                if (Object.keys(channels).length) startPlayback();
             } else {
-                if (isPlaying) {
-                    stopPlayback();
-                    isPlaying = false;
-                    playBtn.textContent = 'Play';
-                    playBtn.classList.remove('active');
-                }
-                isReference = true;
-                refBtn.classList.add('active');
-                referenceNode = audioCtx.createBufferSource();
-                referenceNode.buffer = referenceBuffer;
-                referenceNode.loop = true;
-                referenceNode.connect(masterGain);
-                referenceNode.start();
+                startReference();
             }
         });
-
-        submitBtn.addEventListener('click', () => {
-            const result = scoreChallenge();
-            score += result.pct;
-            completedChallenges.add(currentChallenge.id);
-            scoreEl.textContent = score;
-            challengeNumEl.textContent = completedChallenges.size;
-
-            const details = result.details.join(' | ');
-            if (result.pct >= 70) {
-                showFeedback(`Excellent! ${result.pct}% — ${details}`, 'good');
-            } else if (result.pct >= 40) {
-                showFeedback(`Not bad! ${result.pct}% — ${details}`, 'ok');
-            } else {
-                showFeedback(`Keep trying! ${result.pct}% — ${details}`, 'bad');
-            }
-        });
-
-        resetBtn.addEventListener('click', resetAllEQ);
-
-        challengeSelect.addEventListener('change', () => {
-            const c = challenges.find(ch => ch.id === challengeSelect.value);
-            if (c) loadChallenge(c);
-        });
-
-        function showFeedback(msg, type) {
-            feedbackEl.textContent = msg;
-            feedbackEl.className = 'feedback show ' + type;
-        }
-        function hideFeedback() {
-            feedbackEl.className = 'feedback';
-        }
 
         // --- Boot ---
-        loadChallenge(challenges[0]);
+        buildMixer();
+        let loaded = false;
+        async function ensureLoaded() {
+            if (loaded) return;
+            loaded = true;
+            initAudio();
+            await loadAllStems();
+            updateEQButtons();
+        }
+        document.addEventListener('click', ensureLoaded, { once: true });
+        document.addEventListener('touchstart', ensureLoaded, { once: true });
     })();
     </script>
 </body>

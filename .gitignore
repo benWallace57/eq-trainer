@@ -4,3 +4,6 @@ Secretariat_Borderline/
 LEWITT-music-challenge-featuring-AVEC.zip
 LEWITT_music_challenge_feat_AVEC/
 *.Zone.Identifier
+node_modules/
+package.json
+package-lock.json
