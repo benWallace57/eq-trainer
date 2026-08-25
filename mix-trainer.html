@@ -607,6 +607,11 @@
                         <input type="range" id="compKnee" min="0" max="30" step="1" value="6">
                         <span class="eq-readout" id="compKneeVal">6dB</span>
                     </div>
+                    <div class="eq-row">
+                        <label>Makeup</label>
+                        <input type="range" id="compMakeup" min="0" max="18" step="0.5" value="0">
+                        <span class="eq-readout" id="compMakeupVal">0dB</span>
+                    </div>
                 </div>
                 </div>
             </div>
@@ -777,7 +782,7 @@
         }
 
         function defaultComp() {
-            return { threshold: 0, ratio: 1, attack: 0.01, release: 0.15, knee: 6 };
+            return { threshold: 0, ratio: 1, attack: 0.01, release: 0.15, knee: 6, makeup: 0 };
         }
 
         async function loadAllStems() {
@@ -809,6 +814,9 @@
                 comp.release.value = 0.15;
                 comp.knee.value = 6;
 
+                const compMakeup = audioCtx.createGain();
+                compMakeup.gain.value = 1.0;
+
                 const gain = audioCtx.createGain();
                 gain.gain.value = 1.0;
 
@@ -819,21 +827,24 @@
                 analyser.fftSize = 2048;
                 analyser.smoothingTimeConstant = 0.8;
 
-                // Wire the persistent chain once
+                // Wire: ...hs → comp → analyser (for metering)
+                //                comp → compMakeup → gain → master
+                //                                  → sendGain → reverb
                 hp.connect(ls);
                 ls.connect(band);
                 band.connect(band2);
                 band2.connect(band3);
                 band3.connect(hs);
                 hs.connect(comp);
-                comp.connect(gain);
                 comp.connect(analyser);
+                comp.connect(compMakeup);
+                compMakeup.connect(gain);
                 gain.connect(masterGain);
-                comp.connect(sendGain);
+                compMakeup.connect(sendGain);
                 sendGain.connect(reverbSendBus);
 
                 channels[ch.id] = {
-                    buffer, hp, ls, band, band2, band3, hs, comp, gain, sendGain, analyser,
+                    buffer, hp, ls, band, band2, band3, hs, comp, compMakeup, gain, sendGain, analyser,
                     source: null,
                     vol: 1.0,
                     send: 0,
@@ -1191,6 +1202,7 @@
             attack: document.getElementById('compAttack'),
             release: document.getElementById('compRelease'),
             knee: document.getElementById('compKnee'),
+            makeup: document.getElementById('compMakeup'),
         };
         const compReadouts = {
             thresh: document.getElementById('compThreshVal'),
@@ -1198,6 +1210,7 @@
             attack: document.getElementById('compAttackVal'),
             release: document.getElementById('compReleaseVal'),
             knee: document.getElementById('compKneeVal'),
+            makeup: document.getElementById('compMakeupVal'),
         };
         const compGR = document.getElementById('compGR');
 
@@ -1209,6 +1222,7 @@
             compSliders.attack.value = cs.attack;
             compSliders.release.value = cs.release;
             compSliders.knee.value = cs.knee;
+            compSliders.makeup.value = cs.makeup;
             updateCompReadouts();
         }
 
@@ -1220,6 +1234,7 @@
             compReadouts.attack.textContent = Math.round(cs.attack * 1000) + 'ms';
             compReadouts.release.textContent = Math.round(cs.release * 1000) + 'ms';
             compReadouts.knee.textContent = cs.knee + 'dB';
+            compReadouts.makeup.textContent = cs.makeup + 'dB';
         }
 
         function saveCompFromSliders() {
@@ -1230,6 +1245,7 @@
             ch.compSettings.attack = parseFloat(compSliders.attack.value);
             ch.compSettings.release = parseFloat(compSliders.release.value);
             ch.compSettings.knee = parseFloat(compSliders.knee.value);
+            ch.compSettings.makeup = parseFloat(compSliders.makeup.value);
             applyComp(selectedChannel);
             updateCompReadouts();
         }
@@ -1243,6 +1259,7 @@
             ch.comp.attack.value = cs.attack;
             ch.comp.release.value = cs.release;
             ch.comp.knee.value = cs.knee;
+            ch.compMakeup.gain.value = Math.pow(10, cs.makeup / 20);
         }
 
         Object.values(compSliders).forEach(s => s.addEventListener('input', saveCompFromSliders));
