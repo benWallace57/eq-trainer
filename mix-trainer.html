@@ -174,35 +174,39 @@
             cursor: pointer;
         }
 
-        .reverb-master {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-top: 12px;
-            padding: 10px 15px;
-            background: #161b22;
-            border: 1px solid #222;
-            border-radius: 8px;
+
+        .reverb-bus-view {
             width: 100%;
             max-width: 1200px;
         }
-        .reverb-master label {
+        .reverb-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            padding: 10px 15px;
+            background: #161b22;
+            border: 1px solid #2a3a2a;
+            border-radius: 8px;
+        }
+        .reverb-controls label {
             font-size: 12px;
-            color: #7a9;
+            color: #4ade80;
             font-weight: 600;
         }
-        .reverb-master .rev-control {
+        .reverb-controls .rev-control {
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        .reverb-master .rev-control span {
+        .reverb-controls .rev-control span {
             font-size: 11px;
             color: #889;
-            width: 28px;
+            width: 40px;
         }
-        .reverb-master input[type="range"] {
-            width: 100px;
+        .reverb-controls input[type="range"] {
+            width: 90px;
             height: 3px;
             -webkit-appearance: none;
             appearance: none;
@@ -210,7 +214,7 @@
             border-radius: 2px;
             outline: none;
         }
-        .reverb-master input[type="range"]::-webkit-slider-thumb {
+        .reverb-controls input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 12px;
             height: 12px;
@@ -414,21 +418,40 @@
         <button id="refBtn">Reference</button>
         <button id="snapBtn" style="border-color:#4ade80;color:#4ade80">AI Mix</button>
         <button id="resetBtn" style="border-color:#f97316;color:#f97316">Reset</button>
+        <button id="viewToggle" style="border-color:#4ade80;color:#4ade80">Reverb Bus</button>
     </div>
 
     <div class="mixer" id="mixer"></div>
 
-    <div class="reverb-master">
-        <label>Reverb</label>
-        <div class="rev-control">
-            <span>Decay</span>
-            <input type="range" id="revDecay" min="0.3" max="4.0" step="0.1" value="1.5">
-            <span id="revDecayVal">1.5s</span>
-        </div>
-        <div class="rev-control">
-            <span>Mix</span>
-            <input type="range" id="revMix" min="0" max="1" step="0.05" value="0.3">
-            <span id="revMixVal">30%</span>
+    <div class="reverb-bus-view" id="reverbBusView" style="display:none">
+        <div class="mixer" id="reverbMixer"></div>
+        <div class="reverb-controls">
+            <label>Reverb Bus</label>
+            <div class="rev-control">
+                <span>Pre-Dly</span>
+                <input type="range" id="revPreDelay" min="0" max="80" step="1" value="0">
+                <span id="revPreDelayVal">0ms</span>
+            </div>
+            <div class="rev-control">
+                <span>Decay</span>
+                <input type="range" id="revDecay" min="0.3" max="4.0" step="0.1" value="1.5">
+                <span id="revDecayVal">1.5s</span>
+            </div>
+            <div class="rev-control">
+                <span>HP</span>
+                <input type="range" id="revHP" min="20" max="800" step="5" value="20">
+                <span id="revHPVal">20Hz</span>
+            </div>
+            <div class="rev-control">
+                <span>LP</span>
+                <input type="range" id="revLP" min="2000" max="20000" step="100" value="20000">
+                <span id="revLPVal">20kHz</span>
+            </div>
+            <div class="rev-control">
+                <span>Return</span>
+                <input type="range" id="revReturn" min="0" max="1" step="0.05" value="0.3">
+                <span id="revReturnVal">30%</span>
+            </div>
         </div>
     </div>
 
@@ -707,6 +730,9 @@
         let reverbConvolver = null;
         let reverbReturn = null;
         let reverbSendBus = null;
+        let reverbPreDelay = null;
+        let reverbHP = null;
+        let reverbLP = null;
         let reverbDecay = 1.5;
         let reverbMix = 0.3;
         let busComp = null;
@@ -738,13 +764,26 @@
             busMakeupGain.connect(masterAnalyser);
             masterAnalyser.connect(audioCtx.destination);
 
-            // Reverb bus: all send gains feed into this, which goes through convolver
+            // Reverb bus: sends → preDelay → convolver → HP → LP → return → master
             reverbSendBus = audioCtx.createGain();
+            reverbPreDelay = audioCtx.createDelay(0.1);
+            reverbPreDelay.delayTime.value = 0;
             reverbConvolver = audioCtx.createConvolver();
+            reverbHP = audioCtx.createBiquadFilter();
+            reverbHP.type = 'highpass';
+            reverbHP.frequency.value = 20;
+            reverbHP.Q.value = 0.7;
+            reverbLP = audioCtx.createBiquadFilter();
+            reverbLP.type = 'lowpass';
+            reverbLP.frequency.value = 20000;
+            reverbLP.Q.value = 0.7;
             reverbReturn = audioCtx.createGain();
             reverbReturn.gain.value = reverbMix;
-            reverbSendBus.connect(reverbConvolver);
-            reverbConvolver.connect(reverbReturn);
+            reverbSendBus.connect(reverbPreDelay);
+            reverbPreDelay.connect(reverbConvolver);
+            reverbConvolver.connect(reverbHP);
+            reverbHP.connect(reverbLP);
+            reverbLP.connect(reverbReturn);
             reverbReturn.connect(masterGain);
 
             generateImpulseResponse(reverbDecay);
@@ -1792,7 +1831,7 @@
         }
 
         function rebuildFaders() {
-            document.querySelectorAll('.channel').forEach(col => {
+            mixer.querySelectorAll('.channel').forEach(col => {
                 const id = col.dataset.id;
                 const ch = channels[id];
                 if (!ch) return;
@@ -1817,20 +1856,116 @@
             resetMixer();
         });
 
-        // --- Reverb master controls ---
+        // --- Reverb Bus View ---
+        const viewToggle = document.getElementById('viewToggle');
+        const reverbBusView = document.getElementById('reverbBusView');
+        const reverbMixer = document.getElementById('reverbMixer');
+        let reverbViewActive = false;
+
+        viewToggle.addEventListener('click', () => {
+            reverbViewActive = !reverbViewActive;
+            mixer.style.display = reverbViewActive ? 'none' : 'flex';
+            reverbBusView.style.display = reverbViewActive ? 'block' : 'none';
+            viewToggle.classList.toggle('active', reverbViewActive);
+            viewToggle.textContent = reverbViewActive ? 'Mix View' : 'Reverb Bus';
+            if (reverbViewActive) buildReverbMixer();
+            else rebuildFaders();
+        });
+
+        function buildReverbMixer() {
+            reverbMixer.innerHTML = '';
+            CHANNELS.forEach(ch => {
+                const col = document.createElement('div');
+                col.className = 'channel';
+                col.dataset.id = ch.id;
+
+                const name = document.createElement('div');
+                name.className = 'channel-name';
+                name.textContent = ch.name;
+
+                const faderTrack = document.createElement('div');
+                faderTrack.className = 'fader-track';
+                faderTrack.style.height = '120px';
+                const faderFill = document.createElement('div');
+                faderFill.className = 'fader-fill';
+                faderFill.style.background = '#1a4a2a';
+                const faderThumb = document.createElement('div');
+                faderThumb.className = 'fader-thumb';
+                faderThumb.style.background = '#4ade80';
+                faderTrack.appendChild(faderFill);
+                faderTrack.appendChild(faderThumb);
+
+                const faderVal = document.createElement('div');
+                faderVal.className = 'fader-val';
+                faderVal.style.color = '#7a9';
+
+                const sendVal = channels[ch.id] ? channels[ch.id].send : 0;
+                faderFill.style.height = (sendVal * 100) + '%';
+                faderThumb.style.bottom = (sendVal * 100) + '%';
+                faderVal.textContent = Math.round(sendVal * 100) + '%';
+
+                const icon = document.createElement('div');
+                icon.className = 'channel-icon';
+                icon.textContent = ch.icon;
+
+                function setSendFader(e) {
+                    const rect = faderTrack.getBoundingClientRect();
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const pct = 1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+                    if (channels[ch.id]) {
+                        channels[ch.id].send = pct;
+                        channels[ch.id].sendGain.gain.value = pct;
+                    }
+                    faderFill.style.height = (pct * 100) + '%';
+                    faderThumb.style.bottom = (pct * 100) + '%';
+                    faderVal.textContent = Math.round(pct * 100) + '%';
+                }
+                faderTrack.addEventListener('mousedown', (e) => { activeFader = setSendFader; setSendFader(e); });
+                faderTrack.addEventListener('touchstart', (e) => { activeFader = setSendFader; setSendFader(e); e.preventDefault(); });
+
+                col.appendChild(name);
+                col.appendChild(faderTrack);
+                col.appendChild(faderVal);
+                col.appendChild(icon);
+                reverbMixer.appendChild(col);
+            });
+        }
+
+        // --- Reverb controls ---
+        const revPreDelaySlider = document.getElementById('revPreDelay');
+        const revPreDelayVal = document.getElementById('revPreDelayVal');
         const revDecaySlider = document.getElementById('revDecay');
         const revDecayVal = document.getElementById('revDecayVal');
-        const revMixSlider = document.getElementById('revMix');
-        const revMixVal = document.getElementById('revMixVal');
+        const revHPSlider = document.getElementById('revHP');
+        const revHPVal = document.getElementById('revHPVal');
+        const revLPSlider = document.getElementById('revLP');
+        const revLPVal = document.getElementById('revLPVal');
+        const revReturnSlider = document.getElementById('revReturn');
+        const revReturnVal = document.getElementById('revReturnVal');
 
+        revPreDelaySlider.addEventListener('input', () => {
+            const ms = parseFloat(revPreDelaySlider.value);
+            revPreDelayVal.textContent = ms + 'ms';
+            if (reverbPreDelay) reverbPreDelay.delayTime.value = ms / 1000;
+        });
         revDecaySlider.addEventListener('input', () => {
             reverbDecay = parseFloat(revDecaySlider.value);
             revDecayVal.textContent = reverbDecay.toFixed(1) + 's';
             if (audioCtx) generateImpulseResponse(reverbDecay);
         });
-        revMixSlider.addEventListener('input', () => {
-            reverbMix = parseFloat(revMixSlider.value);
-            revMixVal.textContent = Math.round(reverbMix * 100) + '%';
+        revHPSlider.addEventListener('input', () => {
+            const f = parseFloat(revHPSlider.value);
+            revHPVal.textContent = f >= 1000 ? (f / 1000).toFixed(1) + 'kHz' : f + 'Hz';
+            if (reverbHP) reverbHP.frequency.value = f;
+        });
+        revLPSlider.addEventListener('input', () => {
+            const f = parseFloat(revLPSlider.value);
+            revLPVal.textContent = f >= 1000 ? (f / 1000).toFixed(1) + 'kHz' : f + 'Hz';
+            if (reverbLP) reverbLP.frequency.value = f;
+        });
+        revReturnSlider.addEventListener('input', () => {
+            reverbMix = parseFloat(revReturnSlider.value);
+            revReturnVal.textContent = Math.round(reverbMix * 100) + '%';
             if (reverbReturn) reverbReturn.gain.value = reverbMix;
         });
 
