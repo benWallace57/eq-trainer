@@ -219,6 +219,52 @@
             cursor: pointer;
         }
 
+        .bus-comp {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            padding: 10px 15px;
+            background: #161b22;
+            border: 1px solid #222;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .bus-comp label {
+            font-size: 12px;
+            color: #e879f9;
+            font-weight: 600;
+        }
+        .bus-comp .rev-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bus-comp .rev-control span {
+            font-size: 11px;
+            color: #889;
+            width: 32px;
+        }
+        .bus-comp input[type="range"] {
+            width: 80px;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #2a2a3a;
+            border-radius: 2px;
+            outline: none;
+        }
+        .bus-comp input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e879f9;
+            cursor: pointer;
+        }
+
         /* --- EQ Overlay --- */
         .eq-overlay {
             display: none;
@@ -370,6 +416,41 @@
         </div>
     </div>
 
+    <div class="bus-comp">
+        <label>Bus Comp</label>
+        <div class="rev-control">
+            <span>Thr</span>
+            <input type="range" id="busThresh" min="-30" max="0" step="1" value="0">
+            <span id="busThreshVal">0dB</span>
+        </div>
+        <div class="rev-control">
+            <span>Ratio</span>
+            <input type="range" id="busRatio" min="1" max="10" step="0.5" value="1">
+            <span id="busRatioVal">1.0:1</span>
+        </div>
+        <div class="rev-control">
+            <span>Atk</span>
+            <input type="range" id="busAttack" min="0.001" max="0.1" step="0.001" value="0.02">
+            <span id="busAttackVal">20ms</span>
+        </div>
+        <div class="rev-control">
+            <span>Rel</span>
+            <input type="range" id="busRelease" min="0.05" max="0.5" step="0.01" value="0.15">
+            <span id="busReleaseVal">150ms</span>
+        </div>
+        <div class="rev-control">
+            <span>Knee</span>
+            <input type="range" id="busKnee" min="0" max="30" step="1" value="10">
+            <span id="busKneeVal">10dB</span>
+        </div>
+        <div class="rev-control">
+            <span>Makeup</span>
+            <input type="range" id="busMakeup" min="0" max="12" step="0.5" value="0">
+            <span id="busMakeupVal">0dB</span>
+        </div>
+        <span id="busGR" style="font-size:11px;color:#889;margin-left:8px">GR: 0dB</span>
+    </div>
+
     <div class="eq-overlay" id="eqOverlay">
         <div class="eq-panel">
             <button class="eq-close" id="eqClose">&times;</button>
@@ -492,13 +573,14 @@
         };
 
         const AI_MIX_PRESET = {
-            'lead-vocals': { eq: { hpFreq: 120, hpQ: 0.7, lsFreq: 200, lsGain: 0, bandFreq: 3000, bandGain: 8.6, bandQ: 0.5, hsFreq: 8000, hsGain: 12 }, vol: 1.97, send: 0.15, comp: { threshold: -18, ratio: 3, attack: 0.01, release: 0.15, knee: 6 } },
-            'backing-vocals': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 200, lsGain: -1.8, bandFreq: 2000, bandGain: 0, bandQ: 1.5, hsFreq: 6000, hsGain: 11.6 }, vol: 1.72, send: 0.15, comp: { threshold: -20, ratio: 3, attack: 0.01, release: 0.15, knee: 6 } },
-            'piano': { eq: { hpFreq: 100, hpQ: 0.7, lsFreq: 300, lsGain: -0.9, bandFreq: 500, bandGain: -1.5, bandQ: 3, hsFreq: 5000, hsGain: 2.1 }, vol: 1.47, send: 0.05, comp: { threshold: -15, ratio: 2, attack: 0.02, release: 0.2, knee: 10 } },
-            'guitar-main': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 250, lsGain: -0.4, bandFreq: 2500, bandGain: 0, bandQ: 2, hsFreq: 5000, hsGain: 12 }, vol: 2.0, send: 0.05, comp: { threshold: -12, ratio: 2, attack: 0.015, release: 0.2, knee: 10 } },
-            'guitar-overdub': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2.9, bandFreq: 3000, bandGain: 0, bandQ: 2, hsFreq: 6000, hsGain: 4.1 }, vol: 0.5, send: 0.05, comp: { threshold: -12, ratio: 2, attack: 0.015, release: 0.2, knee: 10 } },
-            'overhead': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2, bandFreq: 4000, bandGain: 0, bandQ: 2, hsFreq: 8000, hsGain: 4.1 }, vol: 2.0, send: 0.05, comp: { threshold: -20, ratio: 4, attack: 0.005, release: 0.1, knee: 3 } },
-            'floor-tom': { eq: { hpFreq: 49, hpQ: 0.7, lsFreq: 250, lsGain: 1.9, bandFreq: 350, bandGain: -3.3, bandQ: 4.4, hsFreq: 5000, hsGain: 0 }, vol: 1.95, send: 0.05, comp: { threshold: -22, ratio: 5, attack: 0.005, release: 0.08, knee: 3 } },
+            'lead-vocals': { eq: { hpFreq: 100, hpQ: 0.7, lsFreq: 200, lsGain: 0, bandFreq: 3000, bandGain: 4, bandQ: 0.7, hsFreq: 7000, hsGain: 6 }, vol: 1.3, send: 0.12, comp: { threshold: -18, ratio: 3, attack: 0.01, release: 0.15, knee: 6 } },
+            'backing-vocals': { eq: { hpFreq: 130, hpQ: 0.7, lsFreq: 200, lsGain: -2, bandFreq: 2000, bandGain: 0, bandQ: 1.5, hsFreq: 5000, hsGain: 6 }, vol: 1.1, send: 0.12, comp: { threshold: -20, ratio: 3, attack: 0.01, release: 0.15, knee: 6 } },
+            'piano': { eq: { hpFreq: 60, hpQ: 0.7, lsFreq: 200, lsGain: 2, bandFreq: 500, bandGain: -2, bandQ: 2, hsFreq: 5000, hsGain: 1 }, vol: 1.2, send: 0.05, comp: { threshold: -15, ratio: 2, attack: 0.02, release: 0.2, knee: 10 } },
+            'guitar-main': { eq: { hpFreq: 120, hpQ: 0.7, lsFreq: 250, lsGain: -1, bandFreq: 2500, bandGain: 1, bandQ: 1.5, hsFreq: 5000, hsGain: 6 }, vol: 1.3, send: 0.05, comp: { threshold: -14, ratio: 2.5, attack: 0.015, release: 0.2, knee: 10 } },
+            'guitar-overdub': { eq: { hpFreq: 180, hpQ: 0.7, lsFreq: 300, lsGain: -3, bandFreq: 3000, bandGain: 0, bandQ: 2, hsFreq: 6000, hsGain: 2 }, vol: 0.4, send: 0.05, comp: { threshold: -12, ratio: 2, attack: 0.015, release: 0.2, knee: 10 } },
+            'overhead': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 300, lsGain: -2, bandFreq: 4000, bandGain: 0, bandQ: 2, hsFreq: 8000, hsGain: 3 }, vol: 1.4, send: 0.05, comp: { threshold: -18, ratio: 4, attack: 0.005, release: 0.1, knee: 3 } },
+            'floor-tom': { eq: { hpFreq: 30, hpQ: 0.7, lsFreq: 80, lsGain: 5, bandFreq: 350, bandGain: -3, bandQ: 3, hsFreq: 5000, hsGain: 0 }, vol: 1.8, send: 0.03, comp: { threshold: -20, ratio: 4, attack: 0.005, release: 0.08, knee: 3 } },
+            _bus: { threshold: -14, ratio: 3, attack: 0.02, release: 0.15, knee: 10, makeup: 4 },
         };
 
         let audioCtx = null;
@@ -548,13 +630,28 @@
         let reverbSendBus = null;
         let reverbDecay = 1.5;
         let reverbMix = 0.3;
+        let busComp = null;
+        let busMakeupGain = null;
 
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             masterGain = audioCtx.createGain();
             masterGain.gain.value = 1.0;
-            masterGain.connect(audioCtx.destination);
+
+            busComp = audioCtx.createDynamicsCompressor();
+            busComp.threshold.value = 0;
+            busComp.ratio.value = 1;
+            busComp.attack.value = 0.02;
+            busComp.release.value = 0.15;
+            busComp.knee.value = 10;
+
+            busMakeupGain = audioCtx.createGain();
+            busMakeupGain.gain.value = 1.0;
+
+            masterGain.connect(busComp);
+            busComp.connect(busMakeupGain);
+            busMakeupGain.connect(audioCtx.destination);
 
             // Reverb bus: all send gains feed into this, which goes through convolver
             reverbSendBus = audioCtx.createGain();
@@ -692,7 +789,7 @@
             referenceSource = audioCtx.createBufferSource();
             referenceSource.buffer = referenceBuffer;
             referenceSource.loop = true;
-            referenceSource.connect(masterGain);
+            referenceSource.connect(audioCtx.destination);
             referenceSource.start();
             isReference = true;
             refBtn.classList.add('active');
@@ -1356,6 +1453,15 @@
                 }
                 applyEQ(id);
             }
+            if (preset._bus) {
+                busThreshSlider.value = preset._bus.threshold;
+                busRatioSlider.value = preset._bus.ratio;
+                busAttackSlider.value = preset._bus.attack;
+                busReleaseSlider.value = preset._bus.release;
+                busKneeSlider.value = preset._bus.knee;
+                busMakeupSlider.value = preset._bus.makeup;
+                updateBusComp();
+            }
             updateGains();
             rebuildFaders();
             updateEQButtons();
@@ -1373,6 +1479,14 @@
                 applyEQ(id);
                 applyComp(id);
             }
+            busThreshSlider.value = 0;
+            busRatioSlider.value = 1;
+            busAttackSlider.value = 0.02;
+            busReleaseSlider.value = 0.15;
+            busKneeSlider.value = 10;
+            busMakeupSlider.value = 0;
+            updateBusComp();
+            if (selectedChannel) { syncCompSliders(); updateCompReadouts(); }
             updateGains();
             rebuildFaders();
             updateEQButtons();
@@ -1420,6 +1534,47 @@
             revMixVal.textContent = Math.round(reverbMix * 100) + '%';
             if (reverbReturn) reverbReturn.gain.value = reverbMix;
         });
+
+        // --- Bus compressor controls ---
+        const busThreshSlider = document.getElementById('busThresh');
+        const busThreshVal = document.getElementById('busThreshVal');
+        const busRatioSlider = document.getElementById('busRatio');
+        const busRatioVal = document.getElementById('busRatioVal');
+        const busAttackSlider = document.getElementById('busAttack');
+        const busAttackVal = document.getElementById('busAttackVal');
+        const busReleaseSlider = document.getElementById('busRelease');
+        const busReleaseVal = document.getElementById('busReleaseVal');
+        const busKneeSlider = document.getElementById('busKnee');
+        const busKneeVal = document.getElementById('busKneeVal');
+        const busMakeupSlider = document.getElementById('busMakeup');
+        const busMakeupVal = document.getElementById('busMakeupVal');
+        const busGREl = document.getElementById('busGR');
+
+        function updateBusComp() {
+            if (!busComp) return;
+            busComp.threshold.value = parseFloat(busThreshSlider.value);
+            busComp.ratio.value = parseFloat(busRatioSlider.value);
+            busComp.attack.value = parseFloat(busAttackSlider.value);
+            busComp.release.value = parseFloat(busReleaseSlider.value);
+            busComp.knee.value = parseFloat(busKneeSlider.value);
+            const makeup = parseFloat(busMakeupSlider.value);
+            if (busMakeupGain) busMakeupGain.gain.value = Math.pow(10, makeup / 20);
+            busThreshVal.textContent = busThreshSlider.value + 'dB';
+            busRatioVal.textContent = parseFloat(busRatioSlider.value).toFixed(1) + ':1';
+            busAttackVal.textContent = Math.round(parseFloat(busAttackSlider.value) * 1000) + 'ms';
+            busReleaseVal.textContent = Math.round(parseFloat(busReleaseSlider.value) * 1000) + 'ms';
+            busKneeVal.textContent = busKneeSlider.value + 'dB';
+            busMakeupVal.textContent = makeup + 'dB';
+        }
+        [busThreshSlider, busRatioSlider, busAttackSlider, busReleaseSlider, busKneeSlider, busMakeupSlider]
+            .forEach(s => s.addEventListener('input', updateBusComp));
+
+        let busGRInterval = setInterval(() => {
+            if (!busComp) return;
+            const reduction = busComp.reduction;
+            busGREl.textContent = 'GR: ' + reduction.toFixed(1) + 'dB';
+            busGREl.style.color = reduction < -3 ? '#e879f9' : '#889';
+        }, 100);
 
         // --- Boot ---
         buildMixer();
