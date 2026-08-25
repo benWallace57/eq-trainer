@@ -522,7 +522,9 @@
                     <span class="dot" style="background:#e879f9"></span>Compressor
                     <span id="compGR" style="margin-left:auto;font-size:11px;color:#889">GR: 0dB</span>
                 </h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 15px">
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                <canvas id="compCanvas" style="width:140px;height:140px;border-radius:6px;background:#0a1220;border:1px solid #1a2535;flex-shrink:0"></canvas>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 15px;flex:1">
                     <div class="eq-row">
                         <label>Thr</label>
                         <input type="range" id="compThresh" min="-40" max="0" step="1" value="0">
@@ -548,6 +550,7 @@
                         <input type="range" id="compKnee" min="0" max="30" step="1" value="6">
                         <span class="eq-readout" id="compKneeVal">6dB</span>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -729,18 +732,23 @@
                 const sendGain = audioCtx.createGain();
                 sendGain.gain.value = 0;
 
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.8;
+
                 // Wire the persistent chain once
                 hp.connect(ls);
                 ls.connect(band);
                 band.connect(hs);
                 hs.connect(comp);
                 comp.connect(gain);
+                comp.connect(analyser);
                 gain.connect(masterGain);
                 comp.connect(sendGain);
                 sendGain.connect(reverbSendBus);
 
                 channels[ch.id] = {
-                    buffer, hp, ls, band, hs, comp, gain, sendGain,
+                    buffer, hp, ls, band, hs, comp, gain, sendGain, analyser,
                     source: null,
                     vol: 1.0,
                     send: 0,
@@ -981,6 +989,8 @@
         }
 
         // --- EQ Panel ---
+        let eqAnimFrame = null;
+
         async function openEQ(id) {
             if (!channels[id]) {
                 await ensureLoaded();
@@ -993,12 +1003,14 @@
             syncCompSliders();
             updateCompReadouts();
             eqOverlay.classList.add('open');
-            requestAnimationFrame(() => drawEQCurve());
+            requestAnimationFrame(() => { drawEQCurve(); drawCompGraph(); });
             startGRMeter();
+            if (!eqAnimFrame) eqAnimFrame = requestAnimationFrame(eqAnimLoop);
         }
 
         function closeEQ() {
             stopGRMeter();
+            if (eqAnimFrame) { cancelAnimationFrame(eqAnimFrame); eqAnimFrame = null; }
             eqOverlay.classList.remove('open');
             selectedChannel = null;
             updateEQButtons();
@@ -1141,6 +1153,113 @@
             if (grInterval) { clearInterval(grInterval); grInterval = null; }
         }
 
+        // --- Compression graph + animation loop ---
+        const compCanvas = document.getElementById('compCanvas');
+        const compCtx = compCanvas.getContext('2d');
+
+        function drawCompGraph() {
+            if (!selectedChannel || !channels[selectedChannel]) return;
+            const cs = channels[selectedChannel].compSettings;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = compCanvas.getBoundingClientRect();
+            compCanvas.width = rect.width * dpr;
+            compCanvas.height = rect.height * dpr;
+            compCtx.scale(dpr, dpr);
+            const w = rect.width, h = rect.height;
+            const pad = 8;
+            const gw = w - pad * 2, gh = h - pad * 2;
+            const dbRange = 60; // -60 to 0
+
+            compCtx.fillStyle = '#0a1220';
+            compCtx.fillRect(0, 0, w, h);
+
+            // Grid lines
+            compCtx.strokeStyle = '#1a2535';
+            compCtx.lineWidth = 0.5;
+            for (let db = -50; db <= 0; db += 10) {
+                const x = pad + ((db + dbRange) / dbRange) * gw;
+                const y = pad + ((-db) / dbRange) * gh;
+                compCtx.beginPath(); compCtx.moveTo(x, pad); compCtx.lineTo(x, pad + gh); compCtx.stroke();
+                compCtx.beginPath(); compCtx.moveTo(pad, y); compCtx.lineTo(pad + gw, y); compCtx.stroke();
+            }
+
+            // 1:1 line
+            compCtx.beginPath();
+            compCtx.strokeStyle = '#334';
+            compCtx.lineWidth = 1;
+            compCtx.moveTo(pad, pad + gh);
+            compCtx.lineTo(pad + gw, pad);
+            compCtx.stroke();
+
+            // Compression transfer function
+            compCtx.beginPath();
+            compCtx.strokeStyle = '#4ecdc4';
+            compCtx.lineWidth = 2;
+            for (let i = 0; i <= 100; i++) {
+                const inputDb = -dbRange + (i / 100) * dbRange;
+                let outputDb;
+                const thresh = cs.threshold;
+                const ratio = cs.ratio;
+                const knee = cs.knee;
+                if (knee > 0 && inputDb > thresh - knee / 2 && inputDb < thresh + knee / 2) {
+                    const x2 = inputDb - thresh + knee / 2;
+                    outputDb = inputDb + ((1 / ratio - 1) * x2 * x2) / (2 * knee);
+                } else if (inputDb >= thresh + (knee > 0 ? knee / 2 : 0)) {
+                    outputDb = thresh + (inputDb - thresh) / ratio;
+                } else {
+                    outputDb = inputDb;
+                }
+                const x = pad + ((inputDb + dbRange) / dbRange) * gw;
+                const y = pad + ((-outputDb) / dbRange) * gh;
+                if (i === 0) compCtx.moveTo(x, y); else compCtx.lineTo(x, y);
+            }
+            compCtx.stroke();
+
+            // Threshold marker
+            const threshX = pad + ((cs.threshold + dbRange) / dbRange) * gw;
+            compCtx.beginPath();
+            compCtx.strokeStyle = '#e879f966';
+            compCtx.setLineDash([3, 3]);
+            compCtx.moveTo(threshX, pad); compCtx.lineTo(threshX, pad + gh);
+            compCtx.stroke();
+            compCtx.setLineDash([]);
+
+            // Live signal dot
+            if (isPlaying && channels[selectedChannel].comp) {
+                const reduction = channels[selectedChannel].comp.reduction;
+                const analyser = channels[selectedChannel].analyser;
+                if (analyser) {
+                    const buf = new Float32Array(analyser.frequencyBinCount);
+                    analyser.getFloatFrequencyData(buf);
+                    const peak = Math.max(...buf.slice(0, 200));
+                    const inputLevel = Math.max(-dbRange, Math.min(0, peak + 20));
+                    const outputLevel = inputLevel + reduction;
+                    const dotX = pad + ((inputLevel + dbRange) / dbRange) * gw;
+                    const dotY = pad + ((-outputLevel) / dbRange) * gh;
+                    compCtx.beginPath();
+                    compCtx.arc(dotX, dotY, 5, 0, Math.PI * 2);
+                    compCtx.fillStyle = '#facc15';
+                    compCtx.fill();
+                    compCtx.strokeStyle = '#fff';
+                    compCtx.lineWidth = 1;
+                    compCtx.stroke();
+                }
+            }
+
+            // Labels
+            compCtx.fillStyle = '#556';
+            compCtx.font = '9px sans-serif';
+            compCtx.fillText('in', w - 14, h - 2);
+            compCtx.fillText('out', 1, 10);
+        }
+
+        function eqAnimLoop() {
+            if (!eqOverlay.classList.contains('open')) { eqAnimFrame = null; return; }
+            drawEQCurve();
+            drawCompGraph();
+            eqAnimFrame = requestAnimationFrame(eqAnimLoop);
+        }
+
         eqClose.addEventListener('click', closeEQ);
         eqOverlay.addEventListener('click', (e) => { if (e.target === eqOverlay) closeEQ(); });
 
@@ -1219,6 +1338,39 @@
                 eqCtx.fillStyle = '#445';
                 eqCtx.fillText(g + 'dB', 5, y + 3);
             });
+
+            // Real-time spectrum analyser
+            const ch = channels[selectedChannel];
+            if (ch && ch.analyser && isPlaying) {
+                const bufLen = ch.analyser.frequencyBinCount;
+                const dataArr = new Float32Array(bufLen);
+                ch.analyser.getFloatFrequencyData(dataArr);
+                const nyquist = audioCtx.sampleRate / 2;
+
+                eqCtx.beginPath();
+                let started = false;
+                for (let i = 1; i < bufLen; i++) {
+                    const freq = (i / bufLen) * nyquist;
+                    if (freq < FREQ_MIN || freq > FREQ_MAX) continue;
+                    const x = freqToX(freq, pad, gw);
+                    const dbVal = dataArr[i];
+                    const normDb = Math.max(-60, Math.min(0, dbVal + 60));
+                    const y = pad.top + gh - (normDb / 60) * gh;
+                    if (!started) { eqCtx.moveTo(x, y); started = true; }
+                    else eqCtx.lineTo(x, y);
+                }
+                eqCtx.lineTo(w - pad.right, pad.top + gh);
+                eqCtx.lineTo(pad.left, pad.top + gh);
+                eqCtx.closePath();
+                const grad = eqCtx.createLinearGradient(0, pad.top, 0, pad.top + gh);
+                grad.addColorStop(0, 'rgba(78, 205, 196, 0.35)');
+                grad.addColorStop(1, 'rgba(78, 205, 196, 0.05)');
+                eqCtx.fillStyle = grad;
+                eqCtx.fill();
+                eqCtx.strokeStyle = 'rgba(78, 205, 196, 0.6)';
+                eqCtx.lineWidth = 1;
+                eqCtx.stroke();
+            }
 
             // Compute responses
             const numPts = 300;
