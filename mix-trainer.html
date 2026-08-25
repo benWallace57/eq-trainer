@@ -436,6 +436,39 @@
                     </div>
                 </div>
             </div>
+            <div class="comp-section" id="compSection">
+                <h3 style="font-size:13px;color:#e879f9;margin:12px 0 8px;display:flex;align-items:center;gap:6px">
+                    <span class="dot" style="background:#e879f9"></span>Compressor
+                    <span id="compGR" style="margin-left:auto;font-size:11px;color:#889">GR: 0dB</span>
+                </h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 15px">
+                    <div class="eq-row">
+                        <label>Thr</label>
+                        <input type="range" id="compThresh" min="-40" max="0" step="1" value="0">
+                        <span class="eq-readout" id="compThreshVal">0dB</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Ratio</label>
+                        <input type="range" id="compRatio" min="1" max="20" step="0.5" value="1">
+                        <span class="eq-readout" id="compRatioVal">1:1</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Atk</label>
+                        <input type="range" id="compAttack" min="0.001" max="0.1" step="0.001" value="0.01">
+                        <span class="eq-readout" id="compAttackVal">10ms</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Rel</label>
+                        <input type="range" id="compRelease" min="0.05" max="1.0" step="0.01" value="0.15">
+                        <span class="eq-readout" id="compReleaseVal">150ms</span>
+                    </div>
+                    <div class="eq-row">
+                        <label>Knee</label>
+                        <input type="range" id="compKnee" min="0" max="30" step="1" value="6">
+                        <span class="eq-readout" id="compKneeVal">6dB</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -459,13 +492,13 @@
         };
 
         const AI_MIX_PRESET = {
-            'lead-vocals': { eq: { hpFreq: 120, hpQ: 0.7, lsFreq: 200, lsGain: 0, bandFreq: 3000, bandGain: 8.6, bandQ: 0.5, hsFreq: 8000, hsGain: 12 }, vol: 1.97, send: 0.15 },
-            'backing-vocals': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 200, lsGain: -1.8, bandFreq: 2000, bandGain: 0, bandQ: 1.5, hsFreq: 6000, hsGain: 11.6 }, vol: 1.72, send: 0.15 },
-            'piano': { eq: { hpFreq: 100, hpQ: 0.7, lsFreq: 300, lsGain: -0.9, bandFreq: 500, bandGain: -1.5, bandQ: 3, hsFreq: 5000, hsGain: 2.1 }, vol: 1.47, send: 0.05 },
-            'guitar-main': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 250, lsGain: -0.4, bandFreq: 2500, bandGain: 0, bandQ: 2, hsFreq: 5000, hsGain: 12 }, vol: 2.0, send: 0.05 },
-            'guitar-overdub': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2.9, bandFreq: 3000, bandGain: 0, bandQ: 2, hsFreq: 6000, hsGain: 4.1 }, vol: 0.5, send: 0.05 },
-            'overhead': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2, bandFreq: 4000, bandGain: 0, bandQ: 2, hsFreq: 8000, hsGain: 4.1 }, vol: 2.0, send: 0.05 },
-            'floor-tom': { eq: { hpFreq: 49, hpQ: 0.7, lsFreq: 250, lsGain: 1.9, bandFreq: 350, bandGain: -3.3, bandQ: 4.4, hsFreq: 5000, hsGain: 0 }, vol: 1.95, send: 0.05 },
+            'lead-vocals': { eq: { hpFreq: 120, hpQ: 0.7, lsFreq: 200, lsGain: 0, bandFreq: 3000, bandGain: 8.6, bandQ: 0.5, hsFreq: 8000, hsGain: 12 }, vol: 1.97, send: 0.15, comp: { threshold: -18, ratio: 3, attack: 0.01, release: 0.15, knee: 6 } },
+            'backing-vocals': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 200, lsGain: -1.8, bandFreq: 2000, bandGain: 0, bandQ: 1.5, hsFreq: 6000, hsGain: 11.6 }, vol: 1.72, send: 0.15, comp: { threshold: -20, ratio: 3, attack: 0.01, release: 0.15, knee: 6 } },
+            'piano': { eq: { hpFreq: 100, hpQ: 0.7, lsFreq: 300, lsGain: -0.9, bandFreq: 500, bandGain: -1.5, bandQ: 3, hsFreq: 5000, hsGain: 2.1 }, vol: 1.47, send: 0.05, comp: { threshold: -15, ratio: 2, attack: 0.02, release: 0.2, knee: 10 } },
+            'guitar-main': { eq: { hpFreq: 150, hpQ: 0.7, lsFreq: 250, lsGain: -0.4, bandFreq: 2500, bandGain: 0, bandQ: 2, hsFreq: 5000, hsGain: 12 }, vol: 2.0, send: 0.05, comp: { threshold: -12, ratio: 2, attack: 0.015, release: 0.2, knee: 10 } },
+            'guitar-overdub': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2.9, bandFreq: 3000, bandGain: 0, bandQ: 2, hsFreq: 6000, hsGain: 4.1 }, vol: 0.5, send: 0.05, comp: { threshold: -12, ratio: 2, attack: 0.015, release: 0.2, knee: 10 } },
+            'overhead': { eq: { hpFreq: 200, hpQ: 0.7, lsFreq: 300, lsGain: -2, bandFreq: 4000, bandGain: 0, bandQ: 2, hsFreq: 8000, hsGain: 4.1 }, vol: 2.0, send: 0.05, comp: { threshold: -20, ratio: 4, attack: 0.005, release: 0.1, knee: 3 } },
+            'floor-tom': { eq: { hpFreq: 49, hpQ: 0.7, lsFreq: 250, lsGain: 1.9, bandFreq: 350, bandGain: -3.3, bandQ: 4.4, hsFreq: 5000, hsGain: 0 }, vol: 1.95, send: 0.05, comp: { threshold: -22, ratio: 5, attack: 0.005, release: 0.08, knee: 3 } },
         };
 
         let audioCtx = null;
@@ -566,6 +599,10 @@
             return { hpFreq: 20, hpQ: 0.7, lsFreq: 200, lsGain: 0, bandFreq: 1000, bandGain: 0, bandQ: 2, hsFreq: 5000, hsGain: 0 };
         }
 
+        function defaultComp() {
+            return { threshold: 0, ratio: 1, attack: 0.01, release: 0.15, knee: 6 };
+        }
+
         async function loadAllStems() {
             initAudio();
             const loads = CHANNELS.map(async ch => {
@@ -582,6 +619,13 @@
                 const hs = audioCtx.createBiquadFilter();
                 hs.type = 'highshelf'; hs.frequency.value = 5000; hs.gain.value = 0;
 
+                const comp = audioCtx.createDynamicsCompressor();
+                comp.threshold.value = 0;
+                comp.ratio.value = 1;
+                comp.attack.value = 0.01;
+                comp.release.value = 0.15;
+                comp.knee.value = 6;
+
                 const gain = audioCtx.createGain();
                 gain.gain.value = 1.0;
 
@@ -592,19 +636,21 @@
                 hp.connect(ls);
                 ls.connect(band);
                 band.connect(hs);
-                hs.connect(gain);
+                hs.connect(comp);
+                comp.connect(gain);
                 gain.connect(masterGain);
-                hs.connect(sendGain);
+                comp.connect(sendGain);
                 sendGain.connect(reverbSendBus);
 
                 channels[ch.id] = {
-                    buffer, hp, ls, band, hs, gain, sendGain,
+                    buffer, hp, ls, band, hs, comp, gain, sendGain,
                     source: null,
                     vol: 1.0,
                     send: 0,
                     muted: false,
                     soloed: false,
-                    eq: defaultEQ()
+                    eq: defaultEQ(),
+                    compSettings: defaultComp()
                 };
             });
             await Promise.all(loads);
@@ -847,11 +893,15 @@
             eqTitle.textContent = info.name + ' — EQ';
             syncSlidersFromEQ();
             updateEQReadouts();
+            syncCompSliders();
+            updateCompReadouts();
             eqOverlay.classList.add('open');
             requestAnimationFrame(() => drawEQCurve());
+            startGRMeter();
         }
 
         function closeEQ() {
+            stopGRMeter();
             eqOverlay.classList.remove('open');
             selectedChannel = null;
             updateEQButtons();
@@ -915,6 +965,85 @@
         }
 
         Object.values(sliders).forEach(s => s.addEventListener('input', saveEQFromSliders));
+
+        // --- Compressor controls ---
+        const compSliders = {
+            thresh: document.getElementById('compThresh'),
+            ratio: document.getElementById('compRatio'),
+            attack: document.getElementById('compAttack'),
+            release: document.getElementById('compRelease'),
+            knee: document.getElementById('compKnee'),
+        };
+        const compReadouts = {
+            thresh: document.getElementById('compThreshVal'),
+            ratio: document.getElementById('compRatioVal'),
+            attack: document.getElementById('compAttackVal'),
+            release: document.getElementById('compReleaseVal'),
+            knee: document.getElementById('compKneeVal'),
+        };
+        const compGR = document.getElementById('compGR');
+
+        function syncCompSliders() {
+            if (!selectedChannel) return;
+            const cs = channels[selectedChannel].compSettings;
+            compSliders.thresh.value = cs.threshold;
+            compSliders.ratio.value = cs.ratio;
+            compSliders.attack.value = cs.attack;
+            compSliders.release.value = cs.release;
+            compSliders.knee.value = cs.knee;
+            updateCompReadouts();
+        }
+
+        function updateCompReadouts() {
+            if (!selectedChannel) return;
+            const cs = channels[selectedChannel].compSettings;
+            compReadouts.thresh.textContent = cs.threshold + 'dB';
+            compReadouts.ratio.textContent = cs.ratio.toFixed(1) + ':1';
+            compReadouts.attack.textContent = Math.round(cs.attack * 1000) + 'ms';
+            compReadouts.release.textContent = Math.round(cs.release * 1000) + 'ms';
+            compReadouts.knee.textContent = cs.knee + 'dB';
+        }
+
+        function saveCompFromSliders() {
+            if (!selectedChannel) return;
+            const ch = channels[selectedChannel];
+            ch.compSettings.threshold = parseFloat(compSliders.thresh.value);
+            ch.compSettings.ratio = parseFloat(compSliders.ratio.value);
+            ch.compSettings.attack = parseFloat(compSliders.attack.value);
+            ch.compSettings.release = parseFloat(compSliders.release.value);
+            ch.compSettings.knee = parseFloat(compSliders.knee.value);
+            applyComp(selectedChannel);
+            updateCompReadouts();
+        }
+
+        function applyComp(id) {
+            const ch = channels[id];
+            if (!ch) return;
+            const cs = ch.compSettings;
+            ch.comp.threshold.value = cs.threshold;
+            ch.comp.ratio.value = cs.ratio;
+            ch.comp.attack.value = cs.attack;
+            ch.comp.release.value = cs.release;
+            ch.comp.knee.value = cs.knee;
+        }
+
+        Object.values(compSliders).forEach(s => s.addEventListener('input', saveCompFromSliders));
+
+        // Gain reduction meter
+        let grInterval = null;
+        function startGRMeter() {
+            stopGRMeter();
+            grInterval = setInterval(() => {
+                if (!selectedChannel || !channels[selectedChannel]) return;
+                const reduction = channels[selectedChannel].comp.reduction;
+                compGR.textContent = 'GR: ' + reduction.toFixed(1) + 'dB';
+                compGR.style.color = reduction < -3 ? '#e879f9' : '#889';
+            }, 100);
+        }
+        function stopGRMeter() {
+            if (grInterval) { clearInterval(grInterval); grInterval = null; }
+        }
+
         eqClose.addEventListener('click', closeEQ);
         eqOverlay.addEventListener('click', (e) => { if (e.target === eqOverlay) closeEQ(); });
 
@@ -1221,6 +1350,10 @@
                 ch.vol = settings.vol;
                 ch.send = settings.send;
                 ch.sendGain.gain.value = settings.send;
+                if (settings.comp) {
+                    Object.assign(ch.compSettings, settings.comp);
+                    applyComp(id);
+                }
                 applyEQ(id);
             }
             updateGains();
@@ -1233,10 +1366,12 @@
             for (const id of Object.keys(channels)) {
                 const ch = channels[id];
                 ch.eq = defaultEQ();
+                ch.compSettings = defaultComp();
                 ch.vol = 1.0;
                 ch.send = 0;
                 ch.sendGain.gain.value = 0;
                 applyEQ(id);
+                applyComp(id);
             }
             updateGains();
             rebuildFaders();
