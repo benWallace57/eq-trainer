@@ -1824,10 +1824,22 @@
             busKneeSlider.value = 10;
             busMakeupSlider.value = 0;
             updateBusComp();
+            // Reset reverb controls
+            revPreDelaySlider.value = 0; revPreDelayVal.textContent = '0ms';
+            if (reverbPreDelay) reverbPreDelay.delayTime.value = 0;
+            revDecaySlider.value = 1.5; revDecayVal.textContent = '1.5s';
+            reverbDecay = 1.5; if (audioCtx) generateImpulseResponse(1.5);
+            revHPSlider.value = 20; revHPVal.textContent = '20Hz';
+            if (reverbHP) reverbHP.frequency.value = 20;
+            revLPSlider.value = 20000; revLPVal.textContent = '20.0kHz';
+            if (reverbLP) reverbLP.frequency.value = 20000;
+            revReturnSlider.value = 0.3; revReturnVal.textContent = '30%';
+            reverbMix = 0.3; if (reverbReturn) reverbReturn.gain.value = 0.3;
             if (selectedChannel) { syncCompSliders(); updateCompReadouts(); }
             updateGains();
             rebuildFaders();
             updateEQButtons();
+            if (reverbViewActive) buildReverbMixer();
         }
 
         function rebuildFaders() {
