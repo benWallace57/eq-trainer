@@ -1347,15 +1347,19 @@
                 ch.analyser.getFloatFrequencyData(dataArr);
                 const nyquist = audioCtx.sampleRate / 2;
 
+                // Map spectrum: floor=-80dBFS maps to graph bottom, ceiling=-10dBFS maps to graph top
+                const specFloor = -80, specCeil = -10;
+                const specRange = specCeil - specFloor;
+
                 eqCtx.beginPath();
                 let started = false;
                 for (let i = 1; i < bufLen; i++) {
                     const freq = (i / bufLen) * nyquist;
                     if (freq < FREQ_MIN || freq > FREQ_MAX) continue;
                     const x = freqToX(freq, pad, gw);
-                    const dbVal = dataArr[i];
-                    const normDb = Math.max(-60, Math.min(0, dbVal + 60));
-                    const y = pad.top + gh - (normDb / 60) * gh;
+                    const dbVal = Math.max(specFloor, Math.min(specCeil, dataArr[i]));
+                    const norm = (dbVal - specFloor) / specRange;
+                    const y = pad.top + gh * (1 - norm);
                     if (!started) { eqCtx.moveTo(x, y); started = true; }
                     else eqCtx.lineTo(x, y);
                 }
@@ -1363,12 +1367,13 @@
                 eqCtx.lineTo(pad.left, pad.top + gh);
                 eqCtx.closePath();
                 const grad = eqCtx.createLinearGradient(0, pad.top, 0, pad.top + gh);
-                grad.addColorStop(0, 'rgba(78, 205, 196, 0.35)');
-                grad.addColorStop(1, 'rgba(78, 205, 196, 0.05)');
+                grad.addColorStop(0, 'rgba(78, 205, 196, 0.4)');
+                grad.addColorStop(0.6, 'rgba(78, 205, 196, 0.15)');
+                grad.addColorStop(1, 'rgba(78, 205, 196, 0.02)');
                 eqCtx.fillStyle = grad;
                 eqCtx.fill();
-                eqCtx.strokeStyle = 'rgba(78, 205, 196, 0.6)';
-                eqCtx.lineWidth = 1;
+                eqCtx.strokeStyle = 'rgba(78, 205, 196, 0.7)';
+                eqCtx.lineWidth = 1.5;
                 eqCtx.stroke();
             }
 
