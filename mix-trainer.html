@@ -576,6 +576,15 @@
                 const sendGain = audioCtx.createGain();
                 sendGain.gain.value = 0;
 
+                // Wire the persistent chain once
+                hp.connect(ls);
+                ls.connect(band);
+                band.connect(hs);
+                hs.connect(gain);
+                gain.connect(masterGain);
+                hs.connect(sendGain);
+                sendGain.connect(reverbSendBus);
+
                 channels[ch.id] = {
                     buffer, hp, ls, band, hs, gain, sendGain,
                     source: null,
@@ -599,13 +608,6 @@
                 ch.source.buffer = ch.buffer;
                 ch.source.loop = true;
                 ch.source.connect(ch.hp);
-                ch.hp.connect(ch.ls);
-                ch.ls.connect(ch.band);
-                ch.band.connect(ch.hs);
-                ch.hs.connect(ch.gain);
-                ch.gain.connect(masterGain);
-                ch.hs.connect(ch.sendGain);
-                ch.sendGain.connect(reverbSendBus);
                 ch.source.start(startTime);
             });
             updateGains();
@@ -650,11 +652,15 @@
         function updateGains() {
             const anySoloed = Object.values(channels).some(ch => ch.soloed);
             Object.values(channels).forEach(ch => {
+                let active;
                 if (anySoloed) {
+                    active = ch.soloed;
                     ch.gain.gain.value = ch.soloed ? ch.vol : 0;
                 } else {
+                    active = !ch.muted;
                     ch.gain.gain.value = ch.muted ? 0 : ch.vol;
                 }
+                ch.sendGain.gain.value = active ? ch.send : 0;
             });
         }
 
